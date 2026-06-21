@@ -441,15 +441,29 @@ function buildGate(){
 /* ===== データ取得（gviz方式）===== */
 async function loadData(){
   if(!SHEET_ID){ DATA = SAMPLE; return; }
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&headers=0`;
   const txt = await (await fetch(url)).text();
   const json = JSON.parse(txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?$/)[1]);
-  const cols = json.table.cols.map(c=>(c.label||"").trim());
-  DATA = json.table.rows.map(r=>{
+  const rows = json.table.rows || [];
+  if(rows.length===0){ DATA=[]; return; }
+
+  // 1行目を「英字キーの見出し」として使う（name, category, ...）
+  const keys = rows[0].c.map(cell => (cell && cell.v!=null ? String(cell.v).trim() : ""));
+
+  // 既知の見出し語（日本語見出し行などを自動でスキップするために使う）
+  const KNOWN = ["name","category","industries","short","long","image","video","pdf","web"];
+
+  DATA = rows.slice(1).map(r=>{           // 2行目以降を対象
     const o={};
-    r.c.forEach((cell,i)=>{ o[cols[i]] = cell&&cell.v!=null ? String(cell.v) : ""; });
+    r.c.forEach((cell,i)=>{ o[keys[i]] = cell && cell.v!=null ? String(cell.v) : ""; });
     return o;
-  }).filter(o=>o.name);
+  }).filter(o=>{
+    if(!o.name) return false;                 // 商材名が無い行は除外
+    if(KNOWN.includes(o.name)) return false;   // 「name」や見出し由来の行を除外
+    // 日本語見出し行（商材名=「商材名」など）も除外
+    if(o.name==="商材名") return false;
+    return true;
+  });
 }
 
 /* ===== 入口→本体 ===== */
