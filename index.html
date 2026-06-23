@@ -323,12 +323,15 @@ const CONTACT = {
 /* 業種の定義（入口に並ぶ順・英字・背景写真）。ここを変えれば入口も変わる
    photo は背景写真。差し替えOK（Unsplash等のURL） */
 const INDUSTRIES = [
-  {key:"飲食", en:"RESTAURANT", photo:"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80"},
-  {key:"小売", en:"RETAIL",     photo:"https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80"},
-  {key:"宿泊", en:"HOTEL",      photo:"https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80"},
-  {key:"医療", en:"MEDICAL",    photo:"https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80"},
-  {key:"製造", en:"FACTORY",    photo:"https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80"},
-  {key:"美容", en:"BEAUTY",     photo:"https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80"},
+  {key:"飲食",       en:"RESTAURANT",   photo:"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80"},
+  {key:"小売",       en:"RETAIL",       photo:"https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80"},
+  {key:"建設",       en:"CONSTRUCTION", photo:"https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80"},
+  {key:"宿泊",       en:"HOTEL",        photo:"https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80"},
+  {key:"美容",       en:"BEAUTY",       photo:"https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80"},
+  {key:"医療",       en:"MEDICAL",      photo:"https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80"},
+  {key:"製造",       en:"FACTORY",      photo:"https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80"},
+  {key:"教育",       en:"EDUCATION",    photo:"https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80"},
+  {key:"その他サービス", en:"SERVICE",  photo:"https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80"},
 ];
 
 /* カテゴリ→仮写真（商材のimageが空のとき、この写真を自動で当てる）
@@ -343,15 +346,44 @@ const CAT_PHOTO = {
 const DEFAULT_PHOTO = "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80";
 function fallbackPhoto(p){ return CAT_PHOTO[p.category] || DEFAULT_PHOTO; }
 
+/* PDF欄を解析して複数資料に対応
+   1セル内に「改行」または「カンマ」で複数指定できる。
+   各項目は「ラベル|URL」（ラベルを付けたいとき）または「URL」だけでもOK。
+   例）
+     製品カタログ|https://～.pdf
+     価格表|https://～.pdf
+     導入事例|https://～.pdf
+   ラベル無しが1つだけなら「資料を見る」、複数なら「資料1／資料2…」と自動命名 */
+function parsePdfs(raw){
+  if(!raw) return [];
+  const parts = String(raw)
+    .split(/\r?\n/)                                              // まず改行で分割
+    .flatMap(line => line.includes("|") ? [line] : line.split(",")) // ラベル無しの行はカンマでも分割
+    .map(s => s.trim())
+    .filter(Boolean);
+  const out = [];
+  parts.forEach(part=>{
+    const bar = part.indexOf("|");
+    let label="", url="";
+    if(bar>=0){ label=part.slice(0,bar).trim(); url=part.slice(bar+1).trim(); }
+    else { url=part.trim(); }
+    if(url) out.push({label, url});
+  });
+  const unlabeled = out.filter(x=>!x.label).length;
+  let n=0;
+  out.forEach(x=>{ if(!x.label){ n++; x.label = unlabeled>1 ? ("資料"+n) : "資料を見る"; } });
+  return out;
+}
+
 /* 画像URLをプロキシ経由にして到達性を上げる（CORS安全・キャッシュ）
    Googleドライブの共有リンクも自動で直リンクに変換 */
 function imgURL(u,w){
   if(!u) return "";
   u = String(u).trim();
-  // Googleドライブ共有リンク → 直リンク
+  // Googleドライブ共有リンク → Google画像CDN（元サイズ不問・幅指定で自動縮小・軽量表示）
   let m = u.match(/drive\.google\.com\/file\/d\/([\w-]+)/) || u.match(/[?&]id=([\w-]+)/);
-  if(m) u = "https://drive.google.com/uc?export=view&id="+m[1];
-  // weserv プロキシ（https固定・幅指定でリサイズ）
+  if(m) return "https://lh3.googleusercontent.com/d/"+m[1]+"=w"+(w||800);
+  // その他の画像は weserv プロキシ（https固定・幅指定でリサイズ）
   const bare = u.replace(/^https?:\/\//,"");
   return `https://images.weserv.nl/?url=${encodeURIComponent(bare)}&w=${w||800}&output=webp&q=80`;
 }
@@ -573,7 +605,9 @@ function openModal(p){
   document.getElementById("mName").textContent = p.name;
   document.getElementById("mDesc").textContent = p.long||p.short||"";
   let links="";
-  if(p.pdf) links+=`<a class="pdf" href="${esc(p.pdf)}" target="_blank" rel="noopener">📄 資料を見る</a>`;
+  parsePdfs(p.pdf).forEach(d=>{
+    links+=`<a class="pdf" href="${esc(d.url)}" target="_blank" rel="noopener">📄 ${esc(d.label)}</a>`;
+  });
   if(p.web) links+=`<a class="web" href="${esc(p.web)}" target="_blank" rel="noopener">🔗 公式サイト</a>`;
   document.getElementById("mLinks").innerHTML = links;
   const tags=(p.industries||"").split(",").map(s=>s.trim()).filter(Boolean)
