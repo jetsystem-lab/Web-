@@ -28,19 +28,30 @@ const CONTACT = {
 
 /* 業種（9種）── label はデータの industries 列と一致させる
    color = テーマ色（差し色）／ copy = 表紙コピー
-   video = TOP上部で流す動画URL（あれば優先・自動再生/無音/ループ）／ photo = 動画が無いときの写真URL
-   どちらも空なら地紋プレースホルダ */
+
+   ★TOPの背景を差し替えるには、下の photo または video を書き換えるだけです★
+     photo … 表紙の背景写真のURL
+     video … 表紙で流す動画のURL（入れると写真より優先。自動再生・無音・ループ）
+   Googleドライブに置いた写真・動画の「共有リンク」をそのまま貼ってOK（自動変換されます）。
+   その場合は必ずドライブ側を「リンクを知る全員＝閲覧者」にしてください。
+   写真はいま仮のもの（Unsplash）です。自社で撮った写真に差し替えるほど良くなります。 */
+
+/* 全業種共通のTOP動画（自社サイト https://www.jetsystem.co.jp/ のTOPと同じもの）。
+   業種ごとに別の動画にしたくなったら、下の各行の video に個別のURLを入れれば
+   そちらが優先されます。photo は動画の読み込み中に表示される静止画（poster）として働きます。 */
+const TOP_VIDEO = "https://www.jetsystem.co.jp/wp-content/uploads/2024/07/top_video2.mp4";
+
 const INDUSTRIES = [
-  { label:"飲食",       en:"FOOD & BEVERAGE", color:"#C56A3E", copy:"その一手間を、<br>機械にわたす。",   sub:"人手が増えない前提で、店をまわす道具の話。", video:"", photo:"" },
-  { label:"小売",       en:"RETAIL",          color:"#4A7C59", copy:"売れたものだけが、<br>本当のことを言う。", sub:"レジから在庫まで、数字でつなぐ。", video:"", photo:"" },
-  { label:"建設",       en:"CONSTRUCTION",    color:"#A8762F", copy:"現場と事務所を、<br>同じ一枚に。",     sub:"写真・日報・原価。持ち帰らない仕事へ。", video:"", photo:"" },
-  { label:"宿泊",       en:"HOSPITALITY",     color:"#3E6FA8", copy:"フロントの時間を、<br>客に返す。",     sub:"予約・チェックイン・客室の手間を削る。", video:"", photo:"" },
-  { label:"美容",       en:"BEAUTY",          color:"#A84A73", copy:"指名は、<br>記録から生まれる。",       sub:"予約とカルテ、そして次の一回。", video:"", photo:"" },
-  { label:"福祉",       en:"WELFARE & CARE",  color:"#2F7E88", copy:"記録の時間を、<br>ケアの時間に。",     sub:"介護記録・請求・シフトをひとつに。", video:"", photo:"" },
-  { label:"製造",       en:"MANUFACTURING",   color:"#5C5AA8", copy:"止まらないための、<br>見える化。",     sub:"生産・在庫・設備を数字で掴む。", video:"", photo:"" },
-  { label:"教育",       en:"EDUCATION",       color:"#78873A", copy:"先生の残業を、<br>設計で減らす。",     sub:"校務・連絡・端末管理をまとめて。", video:"", photo:"" },
+  { label:"飲食",       en:"FOOD & BEVERAGE", color:"#C56A3E", copy:"その一手間を、<br>機械にわたす。",   sub:"人手が増えない前提で、店をまわす道具の話。", video:TOP_VIDEO, photo:"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1600&q=80" },
+  { label:"小売",       en:"RETAIL",          color:"#4A7C59", copy:"売れたものだけが、<br>本当のことを言う。", sub:"レジから在庫まで、数字でつなぐ。", video:TOP_VIDEO, photo:"https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=80" },
+  { label:"建設",       en:"CONSTRUCTION",    color:"#A8762F", copy:"現場と事務所を、<br>同じ一枚に。",     sub:"写真・日報・原価。持ち帰らない仕事へ。", video:TOP_VIDEO, photo:"https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1600&q=80" },
+  { label:"宿泊",       en:"HOSPITALITY",     color:"#3E6FA8", copy:"フロントの時間を、<br>客に返す。",     sub:"予約・チェックイン・客室の手間を削る。", video:TOP_VIDEO, photo:"https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80" },
+  { label:"美容",       en:"BEAUTY",          color:"#A84A73", copy:"指名は、<br>記録から生まれる。",       sub:"予約とカルテ、そして次の一回。", video:TOP_VIDEO, photo:"https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1600&q=80" },
+  { label:"福祉",       en:"WELFARE & CARE",  color:"#2F7E88", copy:"記録の時間を、<br>ケアの時間に。",     sub:"介護記録・請求・シフトをひとつに。", video:TOP_VIDEO, photo:"https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1600&q=80" },
+  { label:"製造",       en:"MANUFACTURING",   color:"#5C5AA8", copy:"止まらないための、<br>見える化。",     sub:"生産・在庫・設備を数字で掴む。", video:TOP_VIDEO, photo:"https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1600&q=80" },
+  { label:"教育",       en:"EDUCATION",       color:"#78873A", copy:"先生の残業を、<br>設計で減らす。",     sub:"校務・連絡・端末管理をまとめて。", video:TOP_VIDEO, photo:"https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1600&q=80" },
   /* disp = 画面に出す名前（省略時は label）。label はデータの industries 列との照合に使うので変えない */
-  { label:"その他サービス", en:"SERVICES",    color:"#6B6F7A", copy:"商いの土台を、<br>静かに支える。",     sub:"通信・セキュリティ・パソコンのこと。", video:"", photo:"", disp:"その他" }
+  { label:"その他サービス", en:"SERVICES",    color:"#6B6F7A", copy:"商いの土台を、<br>静かに支える。",     sub:"通信・セキュリティ・パソコンのこと。", video:TOP_VIDEO, photo:"https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1600&q=80", disp:"その他" }
 ];
 
 /* カテゴリ別の代替写真（image 列が空のとき自動適用）
@@ -114,13 +125,16 @@ a:hover{color:var(--navy)}
 .ind-card .en{display:block;font-size:8.5px;letter-spacing:.2em;color:rgba(36,59,130,.5);margin-top:4px}
 .ind-card .ct{display:block;font-size:10px;margin-top:7px;color:rgba(36,59,130,.7)}
 .ind-card .tape{position:absolute;left:0;top:0;bottom:0;width:4px}
-#cover .shade{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(24,42,99,.72) 0%,rgba(36,59,130,.32) 34%,rgba(16,31,78,.94) 100%)}
+/* 写真を敷くと中間部（タグライン付近）が明るくなり文字が沈むため、
+   中間の透過を薄くしすぎない。写真の雰囲気は残しつつ白文字の可読性を優先する */
+#cover .shade{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(20,36,88,.80) 0%,rgba(28,48,112,.62) 38%,rgba(16,31,78,.96) 100%)}
 .masthead{position:relative;z-index:2;padding:26px 22px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;color:var(--paper);flex:0 0 auto}
 .plate{background:var(--paper);padding:11px 14px 9px;display:inline-block}
 .plate img{width:210px}
 .plate .sub{font-family:var(--serif);font-size:19px;font-weight:700;letter-spacing:.18em;color:var(--navy);
   margin-top:6px;padding-top:6px;border-top:1px solid rgba(36,59,130,.22)}
-.tagline{font-size:9px;letter-spacing:.26em;margin-top:10px;opacity:.85}
+/* 背景が動画だと明暗が動くため、小さい文字は影を付けないと読めなくなる */
+.tagline{font-size:9px;letter-spacing:.26em;margin-top:10px;opacity:.92;text-shadow:0 1px 3px rgba(8,16,44,.75)}
 .issue-date{text-align:right;font-size:9px;letter-spacing:.2em;line-height:1.9;opacity:.85;flex:0 0 auto}
 .cover-body{position:relative;z-index:2;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:20px 22px 22px;color:var(--paper)}
 .cover-copy,.cover-sub{align-self:stretch}
@@ -266,6 +280,25 @@ a:hover{color:var(--navy)}
 .swipe{margin:22px 40px 0 20px}
 .contact{padding:16px 40px calc(18px + env(safe-area-inset-bottom)) 20px}
 
+/* ── 上部バーを押しやすく・行き先を分かりやすく ──
+   文字が小さく枠も無かったため「戻る」が見つけにくかった。
+   指で押せる高さ（44px）を確保し、枠線を付けて明らかにボタンだと分かる形にする。 */
+.topbar{padding:8px 40px 8px 12px;gap:8px}
+.topbar .back{display:inline-flex;align-items:center;flex:0 0 auto;
+  font-size:13px;font-weight:500;letter-spacing:.02em;min-height:44px;padding:0 13px;
+  background:#fff;color:var(--navy);border:1px solid rgba(36,59,130,.42);border-radius:4px}
+.topbar .back:hover{background:var(--navy);color:var(--paper);border-color:var(--navy)}
+.topbar .now{flex:1 1 auto;min-width:0;text-align:center;font-size:12.5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .idx{display:inline-flex;align-items:center;flex:0 0 auto;
+  font-size:12px;min-height:44px;padding:0 12px;border-radius:4px}
+
+/* ── 紹介動画（記事内でそのまま再生）── */
+.art-video{margin:22px 40px 0 20px}
+.art-video .vh{font-size:9.5px;letter-spacing:.24em;color:var(--accent);margin-bottom:7px}
+.art-video .vframe{position:relative;padding-top:56.25%;background:#000;border:1px solid var(--navy)}
+.art-video .vframe iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
 /* ── PC：見開き ── */
 @media (min-width:900px){
   .masthead{padding:40px 56px 0}
@@ -279,7 +312,10 @@ a:hover{color:var(--navy)}
   .ind-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
   .ind-card{min-height:108px;padding:18px 18px 16px}
   .ind-card .nm{font-size:25px}
-  .topbar{padding:13px 60px 13px 40px}
+  .topbar{padding:10px 60px 10px 40px}
+  .topbar .back{font-size:14px;padding:0 16px}
+  .topbar .now{font-size:13.5px}
+  .art-video{margin:24px 60px 0 44px}
   #contents .inner{padding:54px 60px 0 40px;display:grid;grid-template-columns:1fr 1.15fr;gap:52px;align-items:start}
   .toc-title{font-size:74px}
   .a-full{height:min(74vh,560px)}
@@ -405,6 +441,13 @@ function imgURL(src, w){
   return src;
 }
 
+/* YouTube URL から動画IDを取り出す（watch?v= / youtu.be / embed / shorts に対応）*/
+function ytId(u){
+  if(!u) return "";
+  const m = String(u).match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  return m ? m[1] : "";
+}
+
 function photoFor(item, w){
   if(item.image) return imgURL(item.image, w);
   const cat = item.category || "";
@@ -526,9 +569,16 @@ function coverHTML(){
 }
 
 function topbarHTML(now){
-  return '<div class="topbar"><button class="back" data-open="cover">◂ 表紙</button>' +
-    '<div class="now">' + esc(now) + '</div>' +
-    '<button class="idx" data-open="contents">目次</button></div>';
+  /* 戻り先を画面ごとに変える。記事からは「目次」、目次からは「表紙」へ一段ずつ戻す。
+     右側には常にもう一つの行き先を置き、行き止まりを作らない */
+  const v = state.view;
+  const back  = v === "contents" ? { to:"cover",    label:"表紙にもどる" }
+                                 : { to:"contents", label:"目次にもどる" };
+  const right = v === "contents" ? '<button class="idx" data-open="feed">誌面を読む ▸</button>'
+                                 : '<button class="idx" data-open="cover">表紙</button>';
+  return '<div class="topbar">' +
+    '<button class="back" data-open="' + back.to + '">◂ ' + esc(back.label) + '</button>' +
+    '<div class="now">' + esc(now) + '</div>' + right + '</div>';
 }
 
 function contentsHTML(){
@@ -634,14 +684,25 @@ function articleHTML(){
   if(!it) return contentsHTML();
   const src = photoFor(it, 1400);
   const pdfs = parsePdfs(it.pdf);
+  const vid  = ytId(it.video);
   const links = []
     .concat(it.web ? ['<a href="' + esc(it.web) + '" target="_blank" rel="noopener">公式サイト ▸</a>'] : [])
-    .concat(it.video ? ['<a href="' + esc(it.video) + '" target="_blank" rel="noopener">紹介動画 ▸</a>'] : [])
+    /* YouTube以外の動画URL（Vimeo等）は埋め込めないのでリンクにする */
+    .concat((it.video && !vid) ? ['<a href="' + esc(it.video) + '" target="_blank" rel="noopener">紹介動画 ▸</a>'] : [])
     .concat(pdfs.map(p => '<a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.label) + ' ▸</a>'))
     .join("");
+  /* 紹介動画は記事内でそのまま再生する（現行版と同じ挙動） */
+  const videoBlock = vid
+    ? '<div class="art-video"><div class="vh">紹介動画</div><div class="vframe">' +
+        '<iframe src="https://www.youtube.com/embed/' + esc(vid) + '?rel=0&playsinline=1" ' +
+        'title="' + esc(it.name) + ' 紹介動画" loading="lazy" allowfullscreen ' +
+        'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>' +
+      '</div></div>'
+    : "";
   const tel = CONTACT.tel ? '<a href="tel:' + esc(CONTACT.tel.replace(/[^0-9+]/g,"")) + '">' + esc(CONTACT.tel) + '</a>'
                           : '<a href="' + esc(CONTACT.url) + '" target="_blank" rel="noopener">問い合わせ</a>';
-  return topbarHTML(indName(i) + "特集") +
+  /* 上部バーの中央は「今どの商材を見ているか」を出す（業種名は走り柱と柱脚に出ている） */
+  return topbarHTML(it.name) +
     '<div class="page"><div class="article">' +
       '<div class="art-head"><div class="row"><span class="kicker">ARTICLE ' + String(state.article + 1).padStart(2,"0") + ' ／ ' + esc(enOf(it.category)) + '</span>' +
         '<span class="nombre">Webカタログ ／ ' + esc(indName(i)) + '特集</span></div>' +
@@ -653,6 +714,7 @@ function articleHTML(){
            : '<div class="art-photo ph"><span>' + esc(it.category || "商材") + '写真</span>' +
                '<div class="caption">▲ ' + esc(it.short || it.name) + '</div></div>') +
       '<div class="body">' + (nl2p(it.long) || '<p>' + esc(it.short || "") + '</p>') + '</div>' +
+      videoBlock +
       '<div class="boxes"><div class="box"><div class="h">SPEC ／ 導入の流れ</div><div class="c">' +
         '<div class="r"><b>カテゴリ</b><span>' + esc(it.category || "─") + '</span></div>' +
         '<div class="r"><b>対象業種</b><span>' + esc(it.industries || "全業種") + '</span></div>' +
