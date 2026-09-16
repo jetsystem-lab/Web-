@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ジェットシステム Webカタログ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<script>
+/* ============================================================
+   設定ブロック ── 客先でここだけ書き換える
+   ============================================================ */
+
+/* Googleスプレッドシート（gviz方式） */
+const SHEET_ID   = "1avMex_0JEOht0nXE5WYPsQVWw7CPASiqiBJuQGCIq2I";  // ← スプレッドシートのID
+const SHEET_NAME = "products";     // ← シート名（タブ名）
+
+/* 問い合わせ先（記事末の導線） */
+const CONTACT = {
+  company: "株式会社ジェットシステム",
+  dept:    "営業部",
+  tel:     "0852-27-3930",
+  mail:    "eigyo_team@jetsystem.co.jp",
+  url:     "https://www.jetsystem.co.jp/contact"
+};
+
+/* 業種（9種）── label はデータの industries 列と一致させる
+   color = テーマ色（差し色）／ copy = 表紙コピー
+   video = TOP上部で流す動画URL（あれば優先・自動再生/無音/ループ）／ photo = 動画が無いときの写真URL
+   どちらも空なら地紋プレースホルダ */
+const INDUSTRIES = [
+  { label:"飲食",       en:"FOOD & BEVERAGE", color:"#C56A3E", copy:"その一手間を、<br>機械にわたす。",   sub:"人手が増えない前提で、店をまわす道具の話。", video:"", photo:"" },
+  { label:"小売",       en:"RETAIL",          color:"#4A7C59", copy:"売れたものだけが、<br>本当のことを言う。", sub:"レジから在庫まで、数字でつなぐ。", video:"", photo:"" },
+  { label:"建設",       en:"CONSTRUCTION",    color:"#A8762F", copy:"現場と事務所を、<br>同じ一枚に。",     sub:"写真・日報・原価。持ち帰らない仕事へ。", video:"", photo:"" },
+  { label:"宿泊",       en:"HOSPITALITY",     color:"#3E6FA8", copy:"フロントの時間を、<br>客に返す。",     sub:"予約・チェックイン・客室の手間を削る。", video:"", photo:"" },
+  { label:"美容",       en:"BEAUTY",          color:"#A84A73", copy:"指名は、<br>記録から生まれる。",       sub:"予約とカルテ、そして次の一回。", video:"", photo:"" },
+  { label:"福祉",       en:"WELFARE & CARE",  color:"#2F7E88", copy:"記録の時間を、<br>ケアの時間に。",     sub:"介護記録・請求・シフトをひとつに。", video:"", photo:"" },
+  { label:"製造",       en:"MANUFACTURING",   color:"#5C5AA8", copy:"止まらないための、<br>見える化。",     sub:"生産・在庫・設備を数字で掴む。", video:"", photo:"" },
+  { label:"教育",       en:"EDUCATION",       color:"#78873A", copy:"先生の残業を、<br>設計で減らす。",     sub:"校務・連絡・端末管理をまとめて。", video:"", photo:"" },
+  /* disp = 画面に出す名前（省略時は label）。label はデータの industries 列との照合に使うので変えない */
+  { label:"その他サービス", en:"SERVICES",    color:"#6B6F7A", copy:"商いの土台を、<br>静かに支える。",     sub:"通信・セキュリティ・パソコンのこと。", video:"", photo:"", disp:"その他" }
+];
+
+/* カテゴリ別の代替写真（image 列が空のとき自動適用）
+   ※キーは実際のスプレッドシートの category 列に合わせてあります */
+const CAT_PHOTO = {
+  "POSレジ":     "https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=1200&q=80",
+  "宿泊DX":      "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=1200&q=80",
+  "セキュリティ":  "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=1200&q=80",
+  "リモートロック": "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=1200&q=80",
+  "集客・販促":   "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
+  "店舗設備":     "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80",
+  "建設ソフト":   "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80",
+  "介護ソフト":   "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80",
+  "飲食DX":      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80",
+  "アプリ開発":   "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80",
+  "キャッシュレス": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80"
+};
+
+/* どのカテゴリにも当てはまらないとき（カテゴリ空欄の商材など）の写真 */
+const DEFAULT_PHOTO = "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80";
+</script>
+
+<style>
+:root{
+  --navy:#243B82; --paper:#F3EFE6; --ink:#1b2a5e; --accent:#C56A3E;
+  --serif:"Noto Serif JP",serif; --sans:"Noto Sans JP",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--navy); font-family:var(--sans); font-weight:300;
+  -webkit-text-size-adjust:100%; overflow-x:hidden;
+}
+img{max-width:100%;display:block}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--navy)}
+
+/* 紙の地紋 */
+.paper-rule{background-image:linear-gradient(rgba(36,59,130,.045) 1px,transparent 1px);background-size:100% 30px}
+
+/* 画面 */
+.view{display:none;min-height:100vh;position:relative}
+.view.on{display:block;animation:slidein .42s cubic-bezier(.22,.7,.2,1) both}
+@keyframes slidein{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+
+/* 写真プレースホルダ（素材が無いとき） */
+.ph{position:relative;background:repeating-linear-gradient(112deg,#2d4790 0 10px,#26407f 10px 20px);overflow:hidden}
+.ph.light{background:repeating-linear-gradient(112deg,#d8d1bf 0 9px,#cfc7b3 9px 18px)}
+.ph span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:10px;letter-spacing:.18em;color:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.35);padding:5px 10px;white-space:nowrap}
+.ph.light span{color:rgba(36,59,130,.6);border-color:rgba(36,59,130,.3)}
+.cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+
+/* ── 表紙 ── */
+/* ── TOP（表紙兼・業種えらび） ── */
+#cover .stage{position:relative;min-height:calc(100svh - var(--notice-h,0px));display:flex;flex-direction:column;background:var(--navy);overflow:hidden}
+.top-hero{position:relative;flex:0 0 auto;min-height:46svh;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.top-grid-wrap{position:relative;z-index:2;background:var(--paper);border-top:2px solid var(--navy);padding:18px 20px calc(26px + env(safe-area-inset-bottom));flex:1 1 auto}
+.grid-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.grid-h .t{font-family:var(--serif);font-size:19px;font-weight:700;letter-spacing:.08em}
+/* letter-spacing は最後の1文字の後ろにも入るため、右端でその分だけはみ出す。負マージンで相殺 */
+.grid-h .e{font-size:9px;letter-spacing:.24em;color:var(--accent);margin-right:-.24em}
+.ind-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.ind-card{position:relative;text-align:left;font-family:var(--sans);background:#fff;border:1px solid rgba(36,59,130,.22);color:var(--navy);
+  padding:13px 13px 12px;cursor:pointer;min-height:104px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;transition:transform .2s ease,box-shadow .2s ease}
+.ind-card:active{transform:translateY(1px)}
+.ind-card:hover{box-shadow:0 8px 22px -12px rgba(36,59,130,.5)}
+.ind-card > span{display:block}
+.ind-card .vn{display:block;font-size:9px;letter-spacing:.18em;color:rgba(36,59,130,.55)}
+.ind-card .nm{display:block;font-family:var(--serif);font-size:21px;font-weight:700;letter-spacing:.04em;line-height:1.2;margin:5px 0 0}
+.ind-card .en{display:block;font-size:8.5px;letter-spacing:.2em;color:rgba(36,59,130,.5);margin-top:4px}
+.ind-card .ct{display:block;font-size:10px;margin-top:7px;color:rgba(36,59,130,.7)}
+.ind-card .tape{position:absolute;left:0;top:0;bottom:0;width:4px}
+#cover .shade{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(24,42,99,.72) 0%,rgba(36,59,130,.32) 34%,rgba(16,31,78,.94) 100%)}
+.masthead{position:relative;z-index:2;padding:26px 22px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;color:var(--paper);flex:0 0 auto}
+.plate{background:var(--paper);padding:11px 14px 9px;display:inline-block}
+.plate img{width:210px}
+.plate .sub{font-family:var(--serif);font-size:19px;font-weight:700;letter-spacing:.18em;color:var(--navy);
+  margin-top:6px;padding-top:6px;border-top:1px solid rgba(36,59,130,.22)}
+.tagline{font-size:9px;letter-spacing:.26em;margin-top:10px;opacity:.85}
+.issue-date{text-align:right;font-size:9px;letter-spacing:.2em;line-height:1.9;opacity:.85;flex:0 0 auto}
+.cover-body{position:relative;z-index:2;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:20px 22px 22px;color:var(--paper)}
+.cover-copy,.cover-sub{align-self:stretch}
+.ph.corner span{left:auto;right:14px;top:auto;bottom:14px;transform:none}
+
+.vol{display:inline-block;color:#fff;font-size:10px;letter-spacing:.2em;padding:5px 11px;margin-bottom:14px}
+.cover-copy{font-family:var(--serif);font-size:clamp(34px,10.5vw,46px);font-weight:600;line-height:1.3;letter-spacing:-.02em;text-shadow:0 2px 26px rgba(14,28,74,.45)}
+.cover-sub{font-size:11.5px;line-height:1.95;margin-top:14px;opacity:.92}
+.shelf{position:relative;z-index:2;flex:0 0 auto;padding:12px 22px calc(16px + env(safe-area-inset-bottom));background:var(--paper);border-top:2px solid var(--navy)}
+.shelf-h{font-size:9px;letter-spacing:.22em;color:rgba(36,59,130,.65);margin-bottom:9px}
+.shelf-row{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.shelf-row::-webkit-scrollbar{display:none}
+.shelf-row button{flex:0 0 auto;font-family:var(--sans);font-size:11.5px;font-weight:400;padding:7px 12px;border:1px solid rgba(36,59,130,.28);
+  background:transparent;color:var(--navy);cursor:pointer;border-radius:0}
+.shelf-row button[aria-current="true"]{background:var(--navy);color:var(--paper);border-color:var(--navy);font-weight:500}
+.enter{position:absolute;left:22px;right:22px;bottom:96px;display:none}
+
+/* ── 共通ページ枠 ── */
+.page{position:relative;max-width:1180px;margin:0 auto;padding:0 0 92px}
+.spine{position:fixed;top:0;bottom:0;right:0;width:26px;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:5}
+.spine span{writing-mode:vertical-rl;font-family:var(--serif);font-size:11px;letter-spacing:.3em;color:var(--paper)}
+.nombre{font-size:10px;letter-spacing:.2em;color:rgba(36,59,130,.6)}
+.kicker{font-size:9px;letter-spacing:.22em;color:var(--accent)}
+
+/* 上部バー */
+.topbar{position:sticky;top:0;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:11px 44px 11px 20px;background:rgba(243,239,230,.93);backdrop-filter:blur(6px);border-bottom:1px solid rgba(36,59,130,.18)}
+.topbar .back{font-family:var(--sans);font-size:11.5px;letter-spacing:.06em;background:none;border:0;color:var(--navy);cursor:pointer;padding:4px 0}
+.topbar .now{font-family:var(--serif);font-size:13px;font-weight:600;letter-spacing:.08em}
+.topbar .idx{font-family:var(--sans);font-size:11px;letter-spacing:.1em;border:1px solid rgba(36,59,130,.3);background:none;color:var(--navy);padding:6px 10px;cursor:pointer}
+
+/* ── 目次 ── */
+#contents .inner{padding:34px 40px 0 20px}
+.toc-title{font-family:var(--serif);font-size:54px;font-weight:700;letter-spacing:.02em;line-height:1}
+.toc-rule{height:2px;background:var(--navy);margin:16px 0 22px}
+.toc-list{display:flex;flex-direction:column;gap:19px;margin:0;padding:0;list-style:none}
+.toc-item{display:block;width:100%;text-align:left;background:none;border:0;padding:0;cursor:pointer;color:var(--navy);font-family:var(--sans)}
+/* 商材名は実データだと長いものがある（例「飲食店様向けPC-POSFoodレジ」）。
+   縮まない指定のままだと狭い画面で行があふれるので、折り返し可＋necessaryなら
+   カテゴリを次の行へ落とす */
+.toc-line{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.toc-p{font-family:var(--serif);font-size:11px;letter-spacing:.1em;color:var(--accent);flex:0 0 auto}
+.toc-name{font-family:var(--serif);font-size:20px;font-weight:600;flex:0 1 auto;min-width:0;overflow-wrap:anywhere}
+.toc-lead{flex:1 1 24px;min-width:16px;border-bottom:1px dotted rgba(36,59,130,.42);transform:translateY(-4px)}
+.toc-cat{font-size:10px;color:rgba(36,59,130,.65);flex:0 0 auto;margin-left:auto}
+.toc-short{font-size:11.5px;line-height:1.85;margin-top:5px;color:rgba(36,59,130,.82)}
+.editorial{margin-top:28px;border:1px solid rgba(36,59,130,.28);padding:15px 17px;background:rgba(255,255,255,.4)}
+.editorial .t{font-size:9px;letter-spacing:.24em;color:var(--accent);margin-bottom:7px}
+.editorial .b{font-family:var(--serif);font-size:12.5px;line-height:2}
+
+/* ── 誌面 ── */
+.feed{display:flex;flex-direction:column}
+.art{position:relative;cursor:pointer}
+.rise{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s cubic-bezier(.22,.7,.2,1)}
+.rise.in{opacity:1;transform:none}
+
+/* A. 全幅フルブリード */
+.a-full{position:relative;height:min(64vh,420px);overflow:hidden}
+.a-full .cover-img,.a-full.ph{position:absolute;inset:0}
+.a-full .veil{position:absolute;inset:0;background:linear-gradient(to top,rgba(16,31,78,.92),rgba(16,31,78,.12) 62%)}
+.a-full .txt{position:absolute;left:20px;right:20px;bottom:22px;color:var(--paper)}
+.badge{display:inline-block;border:1px solid var(--paper);font-size:9px;letter-spacing:.2em;padding:3px 9px;margin-bottom:11px}
+.a-full h2{font-family:var(--serif);font-size:clamp(26px,7.6vw,34px);font-weight:600;line-height:1.32;letter-spacing:-.02em;margin:0}
+.a-full .meta{font-size:10.5px;margin-top:9px;opacity:.9}
+
+/* B. 2カラム小記事 */
+.a-duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:20px 20px 0}
+.a-duo .art .thumb{height:96px}
+.a-duo h3{font-family:var(--serif);font-size:15.5px;font-weight:600;line-height:1.45;margin:8px 0 0}
+.a-duo .meta{font-size:10px;line-height:1.8;margin-top:5px;color:rgba(36,59,130,.75)}
+
+/* C. 帯コラム */
+.band{margin-top:20px;padding:15px 20px;background:var(--navy);color:var(--paper);display:flex;gap:14px;align-items:center}
+.band .v{writing-mode:vertical-rl;font-family:var(--serif);font-size:12px;letter-spacing:.28em;border-left:1px solid rgba(243,239,230,.4);padding-left:7px;flex:0 0 auto}
+.band .b{font-family:var(--serif);font-size:12.5px;line-height:2}
+
+/* D. 見開き風 */
+.a-spread{display:grid;grid-template-columns:1.15fr 1fr;margin-top:20px}
+.a-spread .thumb{height:172px}
+.a-spread .side{padding:6px 20px 0 14px}
+.a-spread h3{font-family:var(--serif);font-size:21px;font-weight:600;line-height:1.45;margin:6px 0 0}
+.a-spread .meta{font-size:10px;line-height:1.9;margin-top:8px;color:rgba(36,59,130,.75)}
+
+/* 中扉 */
+.divider{position:relative;min-height:56vh;padding:64px 20px 40px;overflow:hidden;margin-top:22px}
+.divider .ghost{position:absolute;left:-10px;top:26px;font-family:var(--serif);font-size:clamp(78px,26vw,132px);font-weight:700;
+  color:rgba(36,59,130,.08);letter-spacing:-.06em;line-height:.92;white-space:nowrap;pointer-events:none}
+.divider h2{position:relative;font-family:var(--serif);font-size:clamp(52px,17vw,76px);font-weight:700;letter-spacing:-.04em;line-height:1.08;margin:0}
+.divider .bar{width:64px;height:3px;margin:22px 0 16px}
+.divider p{position:relative;font-size:12px;line-height:2;max-width:270px;margin:0}
+.divider .count{font-size:10px;letter-spacing:.2em;margin-top:18px;color:var(--accent)}
+
+/* ── 記事 ── */
+.article{padding:0 0 40px}
+.art-head{padding:28px 40px 0 20px}
+.art-head .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.art-head h1{font-family:var(--serif);font-size:clamp(36px,11.5vw,48px);font-weight:700;letter-spacing:-.04em;line-height:1.14;margin:12px 0 0}
+.lead{font-family:var(--serif);font-size:17.5px;font-weight:400;line-height:1.95;margin-top:14px}
+.hr{height:1px;background:rgba(36,59,130,.22);margin:20px 0 18px}
+.art-photo{position:relative;height:210px;overflow:hidden}
+.art-photo .caption{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:22px 16px 10px;font-size:10.5px;line-height:1.6;
+  color:rgba(243,239,230,.96);background:linear-gradient(to top,rgba(16,31,78,.86),rgba(16,31,78,0))}
+.caption{padding:7px 20px 0;font-size:10px;color:rgba(36,59,130,.7);line-height:1.7}
+.body{padding:18px 20px 0;font-size:12.8px;line-height:1.98}
+.body p{margin:0 0 1.1em}
+.body p:first-child::first-letter{font-family:var(--serif);font-size:3.1em;font-weight:700;float:left;line-height:.88;margin:.06em .3em 0 0;color:var(--accent)}
+.boxes{display:flex;flex-direction:column;gap:14px;margin:20px 20px 0}
+.box{border:1px solid var(--navy);background:rgba(255,255,255,.42)}
+.box .h{background:var(--navy);color:var(--paper);font-size:9.5px;letter-spacing:.24em;padding:6px 12px}
+.box .c{padding:12px 14px;font-size:11.5px;line-height:1.95}
+.box .c .r{display:flex;gap:10px}
+.box .c .r b{font-weight:500;color:var(--accent);flex:0 0 66px}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin:18px 20px 0}
+.links a{font-size:11.5px;letter-spacing:.04em;border:1px solid rgba(36,59,130,.4);color:var(--navy);padding:9px 13px}
+.links a:hover{background:var(--navy);color:var(--paper)}
+.contact{margin-top:26px;padding:16px 20px calc(18px + env(safe-area-inset-bottom));background:var(--navy);color:var(--paper);
+  display:flex;justify-content:space-between;align-items:center;gap:14px}
+.contact .t{font-family:var(--serif);font-size:12.5px;line-height:1.7}
+.contact .t small{font-family:var(--sans);font-size:10px;font-weight:300;opacity:.82}
+.contact a{color:var(--paper);border:1px solid var(--paper);font-size:11px;letter-spacing:.08em;padding:9px 12px;flex:0 0 auto;white-space:nowrap}
+.swipe{display:flex;justify-content:space-between;gap:10px;margin:22px 20px 0;font-size:11px}
+.swipe button{font-family:var(--sans);font-size:11px;background:none;border:0;color:var(--navy);cursor:pointer;padding:6px 0;letter-spacing:.06em}
+.swipe button:disabled{opacity:.3;cursor:default}
+
+.footer-nombre{display:flex;justify-content:space-between;padding:20px 44px 26px 20px}
+.notice{margin:0;padding:8px 20px;background:var(--accent);color:#fff;font-size:10.5px;letter-spacing:.04em;text-align:center}
+.loading{padding:40vh 20px;text-align:center;font-family:var(--serif);font-size:14px;letter-spacing:.2em;color:rgba(36,59,130,.6)}
+
+/* ── 走り柱（.spine＝右端に固定の26px帯）ぶんの余白を右に確保する ──
+   目次・上部バー・柱脚は既に40px以上空けてあるが、誌面と記事の一部が
+   20pxのままで文字が柱の下に潜り込むため、ここで右ガターを40pxに揃える。
+   900px以上は下の見開き用メディアクエリ（右60px）が上書きするので影響しない。 */
+.a-full .txt{right:40px}
+.a-duo{padding:20px 40px 0 20px}
+.band{padding:15px 40px 15px 20px}
+.a-spread .side{padding:6px 40px 0 14px}
+.divider{padding:64px 40px 40px 20px}
+.art-photo .caption{padding:22px 40px 10px 16px}
+.caption{padding:7px 40px 0 20px}
+.body{padding:18px 40px 0 20px}
+.boxes{margin:20px 40px 0 20px}
+.links{margin:18px 40px 0 20px}
+.swipe{margin:22px 40px 0 20px}
+.contact{padding:16px 40px calc(18px + env(safe-area-inset-bottom)) 20px}
+
+/* ── PC：見開き ── */
+@media (min-width:900px){
+  .masthead{padding:40px 56px 0}
+  .plate img{width:250px}
+  .cover-body{padding:40px 56px 44px;max-width:700px}
+  .cover-copy{font-size:58px}
+  .shelf{padding:14px 56px 18px}
+  .top-hero{min-height:52svh}
+  .top-grid-wrap{padding:28px 56px 44px}
+  .grid-h .t{font-size:25px}
+  .ind-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  .ind-card{min-height:108px;padding:18px 18px 16px}
+  .ind-card .nm{font-size:25px}
+  .topbar{padding:13px 60px 13px 40px}
+  #contents .inner{padding:54px 60px 0 40px;display:grid;grid-template-columns:1fr 1.15fr;gap:52px;align-items:start}
+  .toc-title{font-size:74px}
+  .a-full{height:min(74vh,560px)}
+  .a-full .txt{left:56px;right:56px;bottom:44px;max-width:620px}
+  .a-full h2{font-size:52px}
+  .a-duo{grid-template-columns:repeat(2,minmax(0,1fr));gap:26px;padding:34px 60px 0 40px}
+  .a-duo .art .thumb{height:190px}
+  .a-duo h3{font-size:21px}
+  .band{padding:22px 60px 22px 40px}
+  .band .b{font-size:14.5px}
+  .a-spread{grid-template-columns:1fr 1fr;margin-top:34px}
+  .a-spread .thumb{height:420px}
+  .a-spread .side{padding:32px 60px 0 40px}
+  .a-spread h3{font-size:34px}
+  .divider{padding:96px 40px 72px;min-height:60vh}
+  .article{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:start}
+  .art-photo{height:100%;min-height:620px;grid-row:1 / span 6}
+  .art-head{padding:56px 60px 0 44px}
+  .body{padding:22px 60px 0 44px;column-count:2;column-gap:28px;column-rule:1px solid rgba(36,59,130,.16);font-size:12.5px}
+  .boxes{flex-direction:row;margin:24px 60px 0 44px}
+  .box{flex:1}
+  .links{margin:20px 60px 0 44px}
+  .contact{margin:28px 0 0;padding:20px 60px 20px 44px;grid-column:1 / -1}
+  .swipe{margin:24px 60px 0 44px}
+  .footer-nombre{padding:24px 60px 34px 40px}
+}
+/* 短い画面（横持ちiPad等）は幅に関係なく圧縮 ── min-width ブロックより後に置く */
+@media (max-height:760px){
+  .masthead{padding:14px 22px 0}
+  .plate{padding:8px 11px 7px}
+  .plate img{width:152px}
+  .plate .sub{font-size:14px;letter-spacing:.14em;margin-top:4px;padding-top:4px}
+  .tagline{display:none}
+  .cover-body{padding:14px 22px 14px}
+  .cover-copy{font-size:clamp(23px,4.4vh,34px);line-height:1.26}
+  .cover-sub{display:none}
+  .vol{margin-bottom:10px}
+  .shelf{padding:9px 22px calc(12px + env(safe-area-inset-bottom))}
+  .shelf-h{margin-bottom:7px}
+  .shelf-row button{padding:6px 11px;font-size:11px}
+}
+@media (prefers-reduced-motion:reduce){
+  .view.on{animation:none}
+  .rise{opacity:1;transform:none;transition:none}
+}
+</style>
+</head>
+<body>
+
+<div id="app"><div class="loading">読み込み中 ……</div></div>
+
+<script>
+/* ============================================================
+   データ取得（gviz方式）── 現行ロジックを踏襲
+   ============================================================ */
+const KEYS = ["name","category","industries","short","long","image","video","pdf","web"];
+
+/* headers=0 … 1行目もデータとして受け取り、こちらで見出しとして解釈する。
+   （このシートは 1行目＝英字キー／2行目＝日本語見出し の二段構成のため、
+     gviz の見出し自動判定に任せると誤検出する） */
+function gvizURL(){
+  return "https://docs.google.com/spreadsheets/d/" + SHEET_ID +
+         "/gviz/tq?tqx=out:json&headers=0&sheet=" + encodeURIComponent(SHEET_NAME);
+}
+
+async function loadData(){
+  if(!SHEET_ID) return { items: DEMO.slice(), demo:true };
+  try{
+    const res  = await fetch(gvizURL(), {cache:"no-store"});
+    const text = await res.text();
+    const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+    const rows = json.table.rows || [];
+    if(!rows.length) return { items: DEMO.slice(), demo:true };
+
+    /* 1行目の英字キー（name, category, …）から列位置を決める。列順が変わっても追随する */
+    const head = (rows[0].c || []).map(c => (c && c.v != null ? String(c.v).trim().toLowerCase() : ""));
+    const idx  = {};
+    KEYS.forEach(k => { idx[k] = head.indexOf(k); });
+    if(idx.name < 0) return { items: DEMO.slice(), demo:true };   // 見出し行が想定と違う
+
+    const items = rows.slice(1).map(r => {
+      const o = {};
+      KEYS.forEach(k => {
+        const c = (idx[k] >= 0 && r.c) ? r.c[idx[k]] : null;
+        o[k] = c && c.v != null ? String(c.v).trim() : "";
+      });
+      return o;
+    }).filter(o =>
+      o.name &&
+      KEYS.indexOf(o.name.toLowerCase()) < 0 &&   // 見出し行の残骸を除外
+      o.name !== "商材名"                          // 日本語見出し行を除外
+    );
+
+    if(!items.length) return { items: DEMO.slice(), demo:true };
+    return { items, demo:false };
+  }catch(e){
+    console.warn("loadData failed", e);
+    return { items: DEMO.slice(), demo:true };
+  }
+}
+
+/* pdf 列：「ラベル|URL」を改行区切りで複数 */
+function parsePdfs(raw){
+  if(!raw) return [];
+  return String(raw).split(/\r?\n/).map(s => s.trim()).filter(Boolean).map(line => {
+    const i = line.indexOf("|");
+    if(i < 0) return { label:"資料PDF", url:line };
+    return { label:line.slice(0,i).trim() || "資料PDF", url:line.slice(i+1).trim() };
+  }).filter(p => p.url);
+}
+
+/* 画像URL整形：Googleドライブ共有リンク → lh3、その他は weserv プロキシ */
+function imgURL(src, w){
+  if(!src) return "";
+  w = w || 1200;
+  const m = String(src).match(/[-\w]{25,}/);
+  if(/drive\.google\.com|docs\.google\.com/.test(src) && m){
+    return "https://lh3.googleusercontent.com/d/" + m[0] + "=w" + w;
+  }
+  if(/^https?:\/\//.test(src)){
+    return "https://images.weserv.nl/?url=" + encodeURIComponent(src.replace(/^https?:\/\//,"")) + "&w=" + w + "&output=jpg&q=78";
+  }
+  return src;
+}
+
+function photoFor(item, w){
+  if(item.image) return imgURL(item.image, w);
+  const cat = item.category || "";
+  for(const k in CAT_PHOTO){
+    if(CAT_PHOTO[k] && (cat === k || cat.indexOf(k) >= 0)) return imgURL(CAT_PHOTO[k], w);
+  }
+  return imgURL(DEFAULT_PHOTO, w);
+}
+
+/* ============================================================
+   デモデータ（SHEET_ID 未設定時のみ・誌面確認用）
+   ============================================================ */
+const DEMO = [
+  {name:"スマレジ", category:"POS", industries:"飲食,小売,美容", short:"クラウドで売上をどこでも。iPad一台から、はじめられる。",
+   long:"レジを替えるのは、店にとってそれなりの事件です。とはいえ、月末に売上を手で集計している時間を思えば、替えない理由のほうが薄い。クラウドに上がった数字は、帰りの電車でも見られます。\n端末はお持ちのiPadで足り、レシートプリンタやキャッシュドロアは後から足せます。まずは一台、レジ横に置いてみるところから。",
+   image:"", video:"", pdf:"製品カタログ|https://www.jetsystem.co.jp/\n料金表|https://www.jetsystem.co.jp/", web:"https://www.jetsystem.co.jp/"},
+  {name:"モバイルオーダー", category:"POS", industries:"飲食", short:"卓上QRから、客が自分で頼む。",
+   long:"注文を取りに行く回数が減ると、厨房とホールの往復がまず軽くなります。写真付きのメニューは客単価にも効きます。", image:"", video:"", pdf:"", web:""},
+  {name:"キャッシュレス決済", category:"POS", industries:"", short:"現金以外の入口を、まとめて一台に。",
+   long:"クレジット・交通系・QRを一台で受ける構成です。締めの突合が一本化されるのが、現場にはいちばん大きい。", image:"", video:"", pdf:"", web:""},
+  {name:"Web予約システム", category:"販促", industries:"飲食,宿泊,美容,医療", short:"予約の電話を、半分にする。",
+   long:"営業中の電話は、手が止まる原因の上位です。24時間受けられる窓口をひとつ置くだけで、取りこぼしと中断が同時に減ります。", image:"", video:"", pdf:"", web:""},
+  {name:"MEO対策", category:"販促", industries:"飲食,小売,美容,医療", short:"地図で見つけてもらう、という集客。",
+   long:"「近くの○○」で出てくるかどうか。写真と営業情報の整備から、口コミの受け止め方まで、運用でやります。", image:"", video:"", pdf:"", web:""},
+  {name:"防犯カメラ", category:"セキュリティ", industries:"", short:"見ていた、という記録。",
+   long:"抑止と、あとから確かめられること。そのふたつが揃って初めて役に立ちます。屋外・厨房・レジ回りで選び方が変わります。", image:"", video:"", pdf:"", web:""},
+  {name:"入退室管理", category:"セキュリティ", industries:"製造,教育,医療,その他サービス", short:"鍵の受け渡しを、やめる。",
+   long:"誰がいつ入ったかが残り、退職時の鍵回収もいらなくなります。勤怠との連携まで含めて設計します。", image:"", video:"", pdf:"", web:""},
+  {name:"業務用ネットワーク", category:"ネットワーク", industries:"", short:"つながらない、を持ち込ませない。",
+   long:"客用Wi-Fiと業務用を分け、決済やカメラの通信を守る構成にします。店舗規模に合わせた無線設計から。", image:"", video:"", pdf:"", web:""},
+  {name:"勤怠管理", category:"業務システム", industries:"飲食,小売,建設,製造,宿泊", short:"タイムカードを集める日を、なくす。",
+   long:"打刻はスマホでもICでも。集計と給与への受け渡しまでつなぐと、締めの数日がまるごと空きます。", image:"", video:"", pdf:"", web:""},
+  {name:"現場写真・日報管理", category:"業務システム", industries:"建設", short:"持ち帰らない事務作業へ。",
+   long:"現場で撮って、その場で仕分け、そのまま報告。事務所に戻ってからの入力をなくす前提で組みます。", image:"", video:"", pdf:"", web:""}
+];
+
+/* ============================================================
+   状態とルーティング
+   ============================================================ */
+const state = { all:[], demo:false, ind:INDUSTRIES[0], items:[], pages:[], view:"cover", article:0 };
+
+/* 画面に出す業種名。照合用の label とは別に disp を持てる（例：その他サービス → その他） */
+function indName(i){ return i ? (i.disp || i.label) : ""; }
+
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const nl2p = s => String(s || "").split(/\r?\n+/).filter(Boolean).map(p => "<p>" + esc(p) + "</p>").join("");
+const nom = n => "─ " + String(n).padStart(3,"0") + " ─";
+
+function forIndustry(label){
+  return state.all.filter(it => {
+    const raw = (it.industries || "").trim();
+    if(!raw) return true;                                  /* 空欄＝全業種 */
+    return raw.split(/[,、\/\s]+/).filter(Boolean).some(x => x === label || label.indexOf(x) >= 0 || x.indexOf(label) >= 0);
+  });
+}
+
+/* カテゴリごとに束ね、ページ番号を振る */
+function buildPages(items){
+  const order = [], seen = {};
+  items.forEach(it => { const c = it.category || "その他"; if(!seen[c]){ seen[c] = []; order.push(c); } seen[c].push(it); });
+  let p = 1;
+  const pages = [];
+  order.forEach(cat => {
+    pages.push({ type:"divider", category:cat, count:seen[cat].length, page:p });
+    seen[cat].forEach(it => { it._page = p; it._cat = cat; pages.push({ type:"article", item:it, page:p }); p += 3; });
+  });
+  return pages;
+}
+
+const EN = { "POS":"POS SYSTEM", "販促":"PROMOTION", "セキュリティ":"SECURITY", "ネットワーク":"NETWORK", "業務システム":"BUSINESS SYSTEM", "その他":"OTHERS" };
+const enOf = c => EN[c] || (c || "").toUpperCase();
+
+function go(view, n){
+  state.view = view;
+  if(typeof n === "number") state.article = n;
+  render();
+  window.scrollTo(0, 0);
+}
+
+/* ============================================================
+   描画
+   ============================================================ */
+function coverHTML(){
+  const d = new Date(), y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0");
+  const hv = state.ind.video || "", hp = state.ind.photo ? imgURL(state.ind.photo, 1400) : "";
+  const heroMedia = hv
+    ? '<video class="cover-img" src="' + esc(hv) + '" autoplay muted loop playsinline preload="metadata"' +
+      (hp ? ' poster="' + esc(hp) + '"' : "") + '></video>'
+    : (hp ? '<img class="cover-img" src="' + esc(hp) + '" alt="">'
+          : '<div class="ph corner" style="position:absolute;inset:0"><span>TOP動画 or 表紙写真（差し替え可）</span></div>');
+  const cards = INDUSTRIES.map((x, k) => {
+    const n = forIndustry(x.label).length;
+    return '<button class="ind-card" data-ind="' + esc(x.label) + '">' +
+      '<span class="tape" style="background:' + x.color + '"></span>' +
+      '<span><span class="vn">VOL.' + String(k+1).padStart(2,"0") + '</span>' +
+      '<span class="nm">' + esc(indName(x)) + '</span>' +
+      '<span class="en">' + esc(x.en) + '</span></span>' +
+      '<span class="ct">' + n + '点の商材 ▸</span></button>';
+  }).join("");
+  return '<div class="stage">' +
+    '<div class="top-hero">' +
+      heroMedia +
+      '<div class="shade"></div>' +
+      '<div class="masthead"><div>' +
+        '<div class="plate"><img src="assets/jet-logo.png" alt="JET SYSTEM"><div class="sub">Webカタログ</div></div>' +
+        '<div class="tagline">人とシステムをつなぐサービスを。</div>' +
+      '</div><div class="issue-date">' + y + '<br>' + m + '</div></div>' +
+      '<div class="cover-body">' +
+        '<div class="cover-copy" style="font-size:clamp(26px,7.2vw,40px)">業種でえらぶ、<br>商材カタログ。</div>' +
+        '<div class="cover-sub">株式会社ジェットシステムが取り扱う商材を、業種ごとの「特集号」にしてまとめました。' +
+          '<br>下から御社の業種を選んでください。</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="top-grid-wrap">' +
+      '<div class="grid-h"><span class="t">業種をえらぶ</span><span class="e">CHOOSE YOUR ISSUE ─ 9 業種</span></div>' +
+      '<div class="ind-grid">' + cards + '</div>' +
+      '<div style="margin-top:16px;font-size:10.5px;line-height:1.9;color:rgba(36,59,130,.65)">該当がない場合は「その他サービス」へ。セキュリティ・通信関連は全業種に掲載しています。</div>' +
+    '</div></div>';
+}
+
+function topbarHTML(now){
+  return '<div class="topbar"><button class="back" data-open="cover">◂ 表紙</button>' +
+    '<div class="now">' + esc(now) + '</div>' +
+    '<button class="idx" data-open="contents">目次</button></div>';
+}
+
+function contentsHTML(){
+  const i = state.ind;
+  const list = state.items.map((it, n) =>
+    '<li><button class="toc-item" data-art="' + n + '">' +
+      '<div class="toc-line"><span class="toc-p">P.' + String(it._page || 1).padStart(2,"0") + '</span>' +
+        '<span class="toc-name">' + esc(it.name) + '</span><span class="toc-lead"></span>' +
+        '<span class="toc-cat">' + esc(it.category || "") + '</span></div>' +
+      (it.short ? '<div class="toc-short">' + esc(it.short) + '</div>' : "") +
+    '</button></li>').join("");
+  return topbarHTML(indName(i) + "特集") +
+    '<div class="page paper-rule"><div class="inner"><div>' +
+      '<div class="toc-title">目次</div>' +
+      '<div class="kicker" style="margin:9px 0 0">CONTENTS ─ ' + esc(i.en) + '</div>' +
+      '<div class="toc-rule"></div>' +
+      '<div class="editorial"><div class="t">編集部より</div><div class="b">' + esc(i.sub) +
+        ' 今号は' + state.items.length + '点。気になる見出しから、どうぞ。</div></div>' +
+    '</div><div><ul class="toc-list">' + list + '</ul>' +
+      '<div class="footer-nombre"><span class="nombre">' + esc(indName(i)) + '特集</span><span class="nombre">' + nom(2) + '</span></div>' +
+    '</div></div></div>' +
+    '<div class="spine"><span>' + esc(indName(i)) + '特集</span></div>';
+}
+
+function thumb(it, w, light){
+  const src = photoFor(it, w || 700);
+  if(src) return '<div class="thumb" style="overflow:hidden"><img src="' + esc(src) + '" alt="" style="width:100%;height:100%;object-fit:cover"></div>';
+  return '<div class="thumb ph' + (light ? " light" : "") + '"><span>' + esc(it.category || "商材") + '写真</span></div>';
+}
+
+const BANDS = [
+  { t:"現場の声", b:"「締め作業が30分早くなった。それだけで、翌日の仕込みが変わる」──店長" },
+  { t:"編集部より", b:"導入して現場が増える道具は、この号には載せていません。" },
+  { t:"ひとこと", b:"迷ったら、いま一番人手を取られている作業から見直すのが早いです。" }
+];
+
+/* 台割：カテゴリ内の残り件数から版面を決める（余り1件は見開き風、2件は2カラム） */
+function feedHTML(){
+  const i = state.ind;
+  let html = topbarHTML(indName(i) + "特集") + '<div class="page"><div class="feed">';
+  let bandN = 0;
+
+  const idxOf = it => state.items.indexOf(it);
+  const full = (it, badge) => {
+    const src = photoFor(it, 1400);
+    return '<div class="art a-full rise" data-art="' + idxOf(it) + '">' +
+      (src ? '<img class="cover-img" src="' + esc(src) + '" alt="">'
+           : '<div class="ph" style="position:absolute;inset:0"><span>' + esc(it.category || "商材") + '写真</span></div>') +
+      '<div class="veil"></div><div class="txt"><div class="badge">' + badge + '</div>' +
+      '<h2>' + esc(it.short || it.name) + '</h2>' +
+      '<div class="meta">' + esc(it.name) + ' ／ P.' + String(it._page).padStart(2,"0") + '</div></div></div>';
+  };
+  const duo = arr => '<div class="a-duo">' + arr.map(it =>
+    '<div class="art rise" data-art="' + idxOf(it) + '">' + thumb(it, 700, true) +
+    '<h3>' + esc(it.name) + '</h3><div class="meta">' + esc(it.short || it.category) +
+    '<br>P.' + String(it._page).padStart(2,"0") + '</div></div>').join("") + '</div>';
+  const spread = it => '<div class="art a-spread rise" data-art="' + idxOf(it) + '">' + thumb(it, 1200, true) +
+    '<div class="side"><div class="kicker">' + esc(enOf(it.category)) + '</div><h3>' + esc(it.name) + '</h3>' +
+    '<div class="meta">' + esc(it.short || "") + '<br>P.' + String(it._page).padStart(2,"0") + '</div></div></div>';
+  const band = () => {
+    const bd = BANDS[bandN++ % BANDS.length];
+    return '<div class="band"><span class="v">' + esc(bd.t) + '</span><span class="b">' + esc(bd.b) + '</span></div>';
+  };
+
+  /* state.pages を「中扉＋そのカテゴリの記事」に束ね直す */
+  const groups = [];
+  state.pages.forEach(node => {
+    if(node.type === "divider") groups.push({ d:node, items:[] });
+    else if(groups.length) groups[groups.length - 1].items.push(node.item);
+  });
+
+  groups.forEach((g, gi) => {
+    const node = g.d, list = g.items;
+    html += '<div class="divider rise"><div class="ghost">' + esc(enOf(node.category)) + '</div>' +
+      '<h2>' + esc(node.category) + '</h2><div class="bar" style="background:' + i.color + '"></div>' +
+      '<p>' + esc(node.count) + '点の記事。' + esc(indName(i)) + 'の現場で使われているものから。</p>' +
+      '<div class="count">' + esc(enOf(node.category)) + ' ／ P.' + String(node.page).padStart(2,"0") + ' ─</div></div>';
+
+    if(!list.length) return;
+    let k = 0, usedSpread = false;
+
+    if(list.length === 1){                                  /* 1件カテゴリは交互に緩急 */
+      if(gi % 2){ html += band() + spread(list[0]); usedSpread = true; }
+      else html += full(list[0], gi === 0 ? "PICK UP" : "FEATURE");
+      return;
+    }
+    html += full(list[0], gi === 0 ? "PICK UP" : "FEATURE");  /* 各カテゴリ1本目はフルブリード */
+    k = 1;
+    while(k < list.length){
+      const rem = list.length - k;
+      if(rem === 1){ html += band() + spread(list[k]); usedSpread = true; k += 1; }
+      else { html += duo([list[k], list[k+1]]); k += 2; }
+    }
+    if(!usedSpread && gi % 2) html += band();
+  });
+  html += '</div><div class="footer-nombre"><span class="nombre">' + esc(indName(i)) + '特集</span><span class="nombre">' + nom(4) + '</span></div></div>' +
+    '<div class="spine"><span>' + esc(indName(i)) + '特集</span></div>';
+  return html;
+}
+
+function articleHTML(){
+  const i = state.ind, it = state.items[state.article];
+  if(!it) return contentsHTML();
+  const src = photoFor(it, 1400);
+  const pdfs = parsePdfs(it.pdf);
+  const links = []
+    .concat(it.web ? ['<a href="' + esc(it.web) + '" target="_blank" rel="noopener">公式サイト ▸</a>'] : [])
+    .concat(it.video ? ['<a href="' + esc(it.video) + '" target="_blank" rel="noopener">紹介動画 ▸</a>'] : [])
+    .concat(pdfs.map(p => '<a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.label) + ' ▸</a>'))
+    .join("");
+  const tel = CONTACT.tel ? '<a href="tel:' + esc(CONTACT.tel.replace(/[^0-9+]/g,"")) + '">' + esc(CONTACT.tel) + '</a>'
+                          : '<a href="' + esc(CONTACT.url) + '" target="_blank" rel="noopener">問い合わせ</a>';
+  return topbarHTML(indName(i) + "特集") +
+    '<div class="page"><div class="article">' +
+      '<div class="art-head"><div class="row"><span class="kicker">ARTICLE ' + String(state.article + 1).padStart(2,"0") + ' ／ ' + esc(enOf(it.category)) + '</span>' +
+        '<span class="nombre">Webカタログ ／ ' + esc(indName(i)) + '特集</span></div>' +
+        '<h1>' + esc(it.name) + '</h1>' +
+        (it.short ? '<div class="lead">' + esc(it.short) + '</div>' : "") +
+        '<div class="hr"></div></div>' +
+      (src ? '<div class="art-photo"><img src="' + esc(src) + '" alt="" style="width:100%;height:100%;object-fit:cover">' +
+               '<div class="caption">▲ ' + esc(it.short || it.name) + '</div></div>'
+           : '<div class="art-photo ph"><span>' + esc(it.category || "商材") + '写真</span>' +
+               '<div class="caption">▲ ' + esc(it.short || it.name) + '</div></div>') +
+      '<div class="body">' + (nl2p(it.long) || '<p>' + esc(it.short || "") + '</p>') + '</div>' +
+      '<div class="boxes"><div class="box"><div class="h">SPEC ／ 導入の流れ</div><div class="c">' +
+        '<div class="r"><b>カテゴリ</b><span>' + esc(it.category || "─") + '</span></div>' +
+        '<div class="r"><b>対象業種</b><span>' + esc(it.industries || "全業種") + '</span></div>' +
+        '<div class="r"><b>ご相談</b><span>現地確認 → 構成のご提案 → お見積り</span></div>' +
+      '</div></div></div>' +
+      (links ? '<div class="links">' + links + '</div>' : "") +
+      '<div class="swipe"><button data-art="' + (state.article - 1) + '" ' + (state.article <= 0 ? "disabled" : "") + '>◂ ' +
+        esc(state.article > 0 ? state.items[state.article-1].name : "") + '</button>' +
+        '<button data-art="' + (state.article + 1) + '" ' + (state.article >= state.items.length - 1 ? "disabled" : "") + '>' +
+        esc(state.article < state.items.length - 1 ? state.items[state.article+1].name : "") + ' ▸</button></div>' +
+      '<div class="contact"><div class="t">詳しくは編集部（担当）まで<br><small>' + esc(CONTACT.company) + ' ' + esc(CONTACT.dept) + '</small></div>' + tel + '</div>' +
+    '</div>' +
+    '<div class="footer-nombre"><span class="nombre">' + esc(it.category || "") + '</span><span class="nombre">' + nom(it._page || 1) + '</span></div></div>' +
+    '<div class="spine"><span>' + esc(indName(i)) + '特集</span></div>';
+}
+
+function render(){
+  const app = document.getElementById("app");
+  const body = state.view === "cover" ? coverHTML()
+             : state.view === "contents" ? contentsHTML()
+             : state.view === "feed" ? feedHTML() : articleHTML();
+  app.innerHTML = (state.demo ? '<div class="notice">デモデータ表示中 ─ 設定ブロックの SHEET_ID を入れると実データに切り替わります</div>' : "") +
+    '<div id="' + state.view + '" class="view on">' + body + '</div>';
+  document.documentElement.style.setProperty("--accent", state.ind.color);
+  const nb = app.querySelector(".notice");
+  document.documentElement.style.setProperty("--notice-h", (nb ? nb.getBoundingClientRect().height : 0) + "px");
+  observeRise();
+  parallax();
+}
+
+/* フェードイン（100〜200ms のずらし） */
+let io;
+function observeRise(){
+  if(io) io.disconnect();
+  io = new IntersectionObserver(es => {
+    es.forEach((e, k) => { if(e.isIntersecting){ setTimeout(() => e.target.classList.add("in"), k * 120); io.unobserve(e.target); } });
+  }, { rootMargin:"0px 0px -8% 0px" });
+  document.querySelectorAll(".rise").forEach(el => io.observe(el));
+}
+
+/* ゆるいパララックス */
+function parallax(){
+  const imgs = [...document.querySelectorAll(".a-full .cover-img, .art-photo img")];
+  if(!imgs.length) return;
+  const on = () => imgs.forEach(im => {
+    const r = im.parentElement.getBoundingClientRect();
+    if(r.bottom < 0 || r.top > innerHeight) return;
+    const p = (r.top + r.height/2 - innerHeight/2) / innerHeight;
+    im.style.transform = "translateY(" + (-p * 18).toFixed(1) + "px) scale(1.08)";
+  });
+  removeEventListener("scroll", window.__px);
+  window.__px = () => requestAnimationFrame(on);
+  addEventListener("scroll", window.__px, { passive:true });
+  on();
+}
+
+/* クリック */
+document.addEventListener("click", e => {
+  const ind = e.target.closest("[data-ind]");
+  if(ind){ pick(ind.getAttribute("data-ind"), true); return; }
+  const open = e.target.closest("[data-open]");
+  if(open){ go(open.getAttribute("data-open")); return; }
+  const art = e.target.closest("[data-art]");
+  if(art && !art.disabled){
+    const n = +art.getAttribute("data-art");
+    if(n >= 0 && n < state.items.length) go("article", n);
+  }
+});
+
+/* 横スワイプで次の商材へ */
+let tx = 0, ty = 0;
+addEventListener("touchstart", e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive:true });
+addEventListener("touchend", e => {
+  if(state.view !== "article") return;
+  const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+  if(Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx)) return;
+  const n = state.article + (dx < 0 ? 1 : -1);
+  if(n >= 0 && n < state.items.length) go("article", n);
+}, { passive:true });
+
+addEventListener("keydown", e => {
+  if(state.view !== "article") return;
+  if(e.key === "ArrowRight" && state.article < state.items.length - 1) go("article", state.article + 1);
+  if(e.key === "ArrowLeft"  && state.article > 0) go("article", state.article - 1);
+});
+
+function pick(label, enter){
+  const i = INDUSTRIES.find(x => x.label === label) || INDUSTRIES[0];
+  state.ind = i;
+  state.items = forIndustry(i.label);
+  state.pages = buildPages(state.items);
+  if(enter || state.view !== "cover") go("contents"); else render();
+}
+
+/* 目次 → 誌面へ落とす動線：目次の最後で誌面に進む */
+document.addEventListener("click", e => {
+  if(e.target.closest(".editorial") && state.view === "contents") go("feed");
+});
+
+(async function init(){
+  const d = await loadData();
+  state.all = d.items; state.demo = d.demo;
+  pick(INDUSTRIES[0].label);
+  state.view = "cover";
+  render();
+})();
+</script>
+</body>
+</html>
