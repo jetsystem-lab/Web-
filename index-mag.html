@@ -60,7 +60,10 @@ const CAT_PHOTO = {
   "介護ソフト":   "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80",
   "飲食DX":      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80",
   "アプリ開発":   "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80",
-  "キャッシュレス": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80"
+  "キャッシュレス": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
+  "券売機・精算機":  "https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=1200&q=80",
+  "釣銭機・両替機":  "https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=1200&q=80",
+  "呼び出し・順番待ち": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80"
 };
 /* どのカテゴリにも当てはまらないときの写真 */
 const DEFAULT_PHOTO = "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80";
@@ -913,12 +916,23 @@ function sceneFood(){
   z("ent", "フードコート・店頭", "FOOD COURT", 2, 1, 14, 10, [7, 1.6, 2.5],
     plate(2,1,14,10) +
     box(2,1,14,.35,2.6,"") + box(2,1,.35,10,2.6,"") +
-    box(2.6,1.5,3.2,.5,1.9,"hot") +                      /* デジタルサイネージ（壁掛けメニュー） */
-    box(6.4,1.5,1.1,.9,1.95,"hot") + box(8,1.5,1.1,.9,1.95,"hot") +  /* 券売機2台 */
+    /* 機械は奥の壁と左の壁に振り分ける（一列に並べると、スマホでピンが重なるため） */
+    box(4.6,1.5,1.1,.9,1.95,"hot") +                     /* 券売機（GLORY）… 奥の壁 */
+    box(7.6,1.5,1.1,.9,1.95,"hot") +                     /* 券売機（芝浦）… 奥の壁 */
+    box(2.4,3.2,.9,1.05,1.95,"hot") +                    /* 券売機（フジタカ）… 左の壁 */
+    box(2.38,5.7,.32,1.7,1.9,"hot") +                    /* デジタルサイネージ … 左の壁 */
+    box(2.4,9.3,.65,.6,1.7,"hot") +                      /* 両替機 … 左の壁の奥 */
     box(10,1.4,5.4,1.1,1.15,"") + box(10,1.4,5.4,1.1,.12,"gl",1.15) + /* 受け渡しカウンター */
+    box(13.6,1.6,.9,.6,.22,"hot",1.27) +                 /* 呼び出しベルの充電台 */
     rep(3, i => rep(2, j => tableSet(3.4 + i*3.9, 4.6 + j*3.1, 1.5))) +
     person(9.2, 3.2) + person(12.4, 3.5),
-    [ {n:"券売機", a:[7,2,2.1]}, {n:"デジタルサイネージ", a:[4.2,1.8,2.8]} ]);
+    /* n を配列にすると、先頭から順にシートにある名前を探す（改名の前後どちらでもピンが立つ） */
+    [ {n:["GLORY 券売機", "券売機"], a:[5.15,1.95,1.35]},  /* 奥の壁で上端に近いので、付け根を胴体の高さに下げる */
+      {n:"芝浦自販機 券売機", a:[8.15,1.95,2.1]},
+      {n:"フジタカ 券売機", a:[2.85,3.7,2.1]},
+      {n:"デジタルサイネージ", a:[2.55,6.55,2]},
+      {n:"フジタカ 両替機", a:[2.72,9.6,1.85]},
+      {n:"ワンタッチコール（呼び出しベル）", a:[14.05,1.9,1.6]} ]);
 
   /* ② 客席（回転ずしレーン＋テーブル） */
   z("hall", "客席", "DINING", 2, 12, 14, 12, [3.2, 17, 3.2],
@@ -950,12 +964,16 @@ function sceneFood(){
     box(18.4,3.7,1.5,.95,.5,"hot",1.05) +                /* PC-POS Foodレジ */
     box(20.4,3.9,.95,.7,.42,"hot",1.05) +                /* スマレジ（タブレット） */
     box(21.9,4,.6,.5,.3,"hot",1.05) +                    /* キャッシュレス決済端末 */
+    box(22.75,4.1,.4,.35,.14,"hot",1.05) +               /* 予約の電話（AIが代わりに受ける） */
     box(23,3.6,1.3,1.05,.95,"hot") +                     /* つり銭機（GLORY） */
+    box(24.7,5.3,.75,.45,1.55,"hot") +                   /* オンライン精算機 */
     person(19.6, 6.1) + person(22.3, 6.3),
     [ {n:"飲食店様向けPC-POSFoodレジ", a:[19.1,4.2,1.6]},
       {n:"スマレジ", a:[20.9,4.3,1.5]},
-      {n:"キャッシュレス決済端末", a:[22.2,4.3,1.4]},
-      {n:"GLORY商材", a:[23.7,4.1,1]} ]);
+      {n:["JMS キャッシュレス決済", "キャッシュレス決済端末"], a:[22.2,4.3,1.4]},
+      {n:"トレタ予約番（AI電話予約）", a:[22.95,4.25,1.25]},
+      {n:["GLORY 自動釣銭機", "GLORY商材"], a:[23.7,4.1,1]},
+      {n:"オンライン精算機 VMT-700", a:[25.05,5.5,1.6]} ]);
 
   /* ④ 厨房 */
   z("kit", "厨房", "KITCHEN", 17, 8.5, 9, 8, [25.4, 9.2, 3.4],
@@ -998,8 +1016,10 @@ function sceneFood(){
     box(29.4,7.4,.7,.7,2.4,"") +
     /* 店外の5人は、画面上で重ならないよう斜めに大きく振り分ける */
     rep(5, i => person(30 + i * 1.55, 8.1 + i * 2.4)) +
-    rep(5, i => box(29.85 + i * 1.55, 7.95 + i * 2.4, .36, .36, .16, "hot", 1.1)),
-    [ {n:"MEO対策", a:[30,8.4,1.8]},
+    rep(5, i => box(29.85 + i * 1.55, 7.95 + i * 2.4, .36, .36, .16, "hot", 1.1)) +
+    person(36.5, 9.5) + box(36.35, 9.35, .36, .36, .16, "hot", 1.1),   /* 店の外からLINEで順番待ち */
+    [ {n:"matoca（LINEで順番待ち）", a:[36.5,9.8,1.8]},
+      {n:"MEO対策", a:[30,8.4,1.8]},
       {n:"ホームページ制作", a:[31.55,10.8,1.8]},
       {n:"予約・顧客管理システムTORETA", a:[33.1,13.2,1.8]},
       {n:"テイクアウトシステムEatsPark", a:[34.65,15.6,1.8]},
@@ -1036,6 +1056,12 @@ function spreadPins(){
   if(!stage) return;
   const items = [...stage.querySelectorAll(".pin,.zb")];
   if(!items.length) return;
+  /* 何度呼んでも同じ結果になるよう、前回ずらした分をいったん戻してから測る */
+  items.forEach(el => {
+    const b = el.querySelector(".box"), s = el.querySelector(".stem");
+    b.style.left = b.style.top = b.style.maxWidth = b.style.position = "";
+    if(s) s.style.height = "";
+  });
   const sr = stage.getBoundingClientRect();
   const data = items.map(el => {
     const b = el.querySelector(".box").getBoundingClientRect();
@@ -1087,7 +1113,13 @@ function renderScene(){
   const ind = state.ind, zones = SCENES[ind.label]();
   const have = {};
   state.list.forEach(p => { have[p.name] = state.list.indexOf(p); });
-  zones.forEach(zo => { zo.live = zo.pins.filter(q => have[q.n] != null); });
+  /* ピンの名前は文字列か配列。配列なら先頭から順に、シートにある名前を採用する */
+  zones.forEach(zo => {
+    zo.live = zo.pins.map(q => {
+      const n = [].concat(q.n).find(x => have[x] != null);
+      return n == null ? null : Object.assign({}, q, { n });
+    }).filter(Boolean);
+  });
 
   const cur = zones.find(zo => zo.id === state.zone) || null;
   const cam = camFor(cur, zones);
@@ -1162,9 +1194,18 @@ function render(){
     (state.demo ? '<div class="notice">デモデータ表示中 ─ スプレッドシートを読み込めませんでした</div>' : '') + html;
   const p = state.list[state.article];
   document.title = (v === "article" && p ? p.name + " ─ " : "") + (v === "cover" ? "" : indName(state.ind) + "特集号 ─ ") + "ジェットシステム Webカタログ";
-  if(v === "scene") requestAnimationFrame(spreadPins);
+  if(v === "scene"){
+    spreadPins();                                       /* 描画直後（位置の計算はその場で確定する） */
+    if(document.fonts) document.fonts.ready.then(() => { if(state.view === "scene") spreadPins(); });  /* 文字の幅が確定したあと */
+  }
   scrollTo(0, 0);
 }
+/* スマホの縦横回転やウィンドウの大きさが変わったら、ピンを置き直す */
+let resizeTimer;
+addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if(state.view === "scene") spreadPins(); }, 150);
+});
 
 /* 記事は左右スワイプ／矢印キーで前後へ（行き止まりでは止まる） */
 addEventListener("keydown", e => {
