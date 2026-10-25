@@ -286,18 +286,18 @@ img{display:block;max-width:100%}
 .scene-svg #cam{transform-origin:0 0;transition:transform .55s cubic-bezier(.22,.7,.2,1)}
 .scene-svg .zone{transition:opacity .4s}
 .scene-svg .zone.dim{opacity:.16}
-.scene-svg polygon{fill:#fff;stroke:var(--ink);stroke-width:1.1;stroke-linejoin:round}
-.scene-svg .plate{fill:#efe9dc}
-.scene-svg .fl{fill:rgba(36,59,130,.13)}
-.scene-svg .fr{fill:rgba(36,59,130,.22)}
-.scene-svg .hot.ft{fill:var(--accent);fill-opacity:.52}
-.scene-svg .hot.fl{fill:var(--accent);fill-opacity:.3}
-.scene-svg .hot.fr{fill:var(--accent);fill-opacity:.44}
-.scene-svg .gl.ft{fill:rgba(92,125,170,.18)}
-.scene-svg .gl.fl{fill:rgba(92,125,170,.1)}
-.scene-svg .gl.fr{fill:rgba(92,125,170,.16)}
+.scene-svg polygon{stroke:rgba(23,33,61,.5);stroke-width:.9;stroke-linejoin:round}
+.scene-svg ellipse,.scene-svg circle{stroke:rgba(23,33,61,.42);stroke-width:.8}
+.scene-svg .hot.ft{fill:var(--accent)}
+.scene-svg .hot.fl{fill:color-mix(in srgb,var(--accent) 82%,#000)}
+.scene-svg .hot.fr{fill:color-mix(in srgb,var(--accent) 68%,#000)}
+.scene-svg .scr{fill:#2b3756}
+.scene-svg .glow{fill:var(--accent)}
 .scene-svg .ln{fill:none;stroke:var(--ink);stroke-width:1.1;stroke-linecap:round}
-.scene-svg .fig{fill:#fff;stroke:var(--ink);stroke-width:1.2}
+.scene-svg .seam{stroke:rgba(23,33,61,.08);stroke-width:1}
+.scene-svg .dash{stroke:#f3efe6;stroke-width:2.6;stroke-linecap:round}
+.scene-svg .steam{fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;opacity:.95}
+.scene-svg .sg{font-weight:700;letter-spacing:.08em}
 .scene-svg .zt{font-family:"Noto Serif JP",serif;font-size:15px;fill:var(--ink);opacity:.5;letter-spacing:.14em}
 
 /* ピンとゾーンバッジ（HTMLで重ねるので、ズームしても文字の大きさは変わらない） */
@@ -879,31 +879,88 @@ function renderArticle(){
 const ISO = { ox:560, oy:118, hw:24, hh:12, hz:30, W:1600, H:1000 };
 const P = (x, y, z) => [ISO.ox + (x - y) * ISO.hw, ISO.oy + (x + y) * ISO.hh - (z || 0) * ISO.hz];
 const pts = a => a.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
-const poly = (a, cls) => '<polygon class="' + cls + '" points="' + pts(a) + '"/>';
+/* fill を渡せば色を直接、渡さなければ class（CSS）で塗る */
+const fpoly = (a, fill, cls) => '<polygon' + (cls ? ' class="' + cls + '"' : '') + (fill ? ' fill="' + fill + '"' : '') + ' points="' + pts(a) + '"/>';
+const f1 = v => v.toFixed(1);
 
-/* 直方体。上面・左面・右面の3枚で立体に見せる */
-function box(x, y, w, d, h, cls, z){
-  z = z || 0; const t = z + h; cls = cls || "";
-  return poly([P(x,y+d,t), P(x+w,y+d,t), P(x+w,y+d,z), P(x,y+d,z)], cls + " fl") +
-         poly([P(x+w,y,t), P(x+w,y+d,t), P(x+w,y+d,z), P(x+w,y,z)], cls + " fr") +
-         poly([P(x,y,t), P(x+w,y,t), P(x+w,y+d,t), P(x,y+d,t)], cls + " ft");
+/* 素材の色。[上面, 左手前の面, 右手前の面] の順で、上ほど明るく塗って立体に見せる */
+const MAT = {
+  wall:   ["#f7f2e8", "#ebe3d3", "#ddd2bf"],
+  wood:   ["#d3a571", "#b98b58", "#a17848"],
+  oak:    ["#e6cca1", "#d2b286", "#bd9c6f"],
+  white:  ["#fdfcf9", "#ebe8e1", "#d8d4cb"],
+  steel:  ["#e6eaed", "#ccd2d7", "#b4bcc3"],
+  ink:    ["#3f475c", "#2f3547", "#242a3a"],
+  mustard:["#e9b551", "#d19c3d", "#b98731"],
+  teal:   ["#6aa7a1", "#548c87", "#467571"],
+  coral:  ["#e58a6c", "#cc7356", "#b36248"],
+  navy:   ["#4b67b3", "#3a5394", "#2f447a"],
+  green:  ["#86b872", "#6d9c5b", "#5a854b"],
+  water:  ["#bfe0f2", "#9fcbe4", "#87b8d6"],
+  clay:   ["#c98a63", "#b0734f", "#975f40"]
+};
+const FLOOR = { tile:"#f1e9da", wood:"#e2c597", oak:"#ead3ab", kitchen:"#e4ebee", carpet:"#d9d5cc", walk:"#e6e0d3", stone:"#d3ccbe", road:"#8f9298" };
+
+/* 直方体。上面・左面・右面の3枚で立体に見せる。m は MAT の素材名か "hot"（当社商材の色） */
+function box(x, y, w, d, h, m, z){
+  z = z || 0; const t = z + h, c = MAT[m];
+  const face = (a, i, cl) => c ? fpoly(a, c[i]) : fpoly(a, "", (m || "") + " " + cl);
+  return face([P(x,y+d,t), P(x+w,y+d,t), P(x+w,y+d,z), P(x,y+d,z)], 1, "fl") +
+         face([P(x+w,y,t), P(x+w,y+d,t), P(x+w,y+d,z), P(x+w,y,z)], 2, "fr") +
+         face([P(x,y,t), P(x+w,y,t), P(x+w,y+d,t), P(x,y+d,t)], 0, "ft");
 }
-const plate = (x, y, w, d) => poly([P(x,y,0), P(x+w,y,0), P(x+w,y+d,0), P(x,y+d,0)], "plate");
-const line2 = (a, b) => '<line class="ln" x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + b[0].toFixed(1) + '" y2="' + b[1].toFixed(1) + '"/>';
-/* 人物（店外の「モノが無い商材」を表すために使う） */
-function person(x, y){
-  const h = P(x, y, 1.05);
-  return box(x - .3, y - .3, .6, .6, .95, "fig") +
-         '<circle class="fig" cx="' + h[0].toFixed(1) + '" cy="' + (h[1] - 9).toFixed(1) + '" r="7.5"/>';
+const plate = (x, y, w, d, f) => fpoly([P(x,y,0), P(x+w,y,0), P(x+w,y+d,0), P(x,y+d,0)], FLOOR[f] || FLOOR.tile);
+const line2 = (a, b, cls) => '<line class="' + (cls || "ln") + '" x1="' + f1(a[0]) + '" y1="' + f1(a[1]) + '" x2="' + f1(b[0]) + '" y2="' + f1(b[1]) + '"/>';
+/* 床の目地。dir="x" は横目地だけ（板張り）、"xy" は格子（タイル） */
+function seams(x, y, w, d, step, dir){
+  let s = "";
+  for (let v = y + step; v < y + d - .01; v += step) s += line2(P(x, v, 0), P(x + w, v, 0), "seam");
+  if (dir === "xy") for (let v = x + step; v < x + w - .01; v += step) s += line2(P(v, y, 0), P(v, y + d, 0), "seam");
+  return s;
 }
-/* テーブル＋椅子 */
-function tableSet(x, y, s){
-  s = s || 1.5;
-  return box(x + s/2 - .16, y + s/2 - .16, .32, .32, .74, "") +
-         box(x, y, s, s, .09, "", .74) +
-         box(x - .62, y + s/2 - .3, .55, .6, .44, "") +
-         box(x + s + .07, y + s/2 - .3, .55, .6, .44, "");
+/* 面に貼る板（画面・看板・のれんなど）。panY は y が一定の面（左手前向き）、panX は x が一定の面（右手前向き） */
+const panY = (x0, x1, y, z0, z1, cls, fill) => fpoly([P(x0,y,z1), P(x1,y,z1), P(x1,y,z0), P(x0,y,z0)], fill, cls);
+const panX = (x, y0, y1, z0, z1, cls, fill) => fpoly([P(x,y0,z1), P(x,y1,z1), P(x,y1,z0), P(x,y0,z0)], fill, cls);
+const topPan = (x, y, w, d, z, cls, fill) => fpoly([P(x,y,z), P(x+w,y,z), P(x+w,y+d,z), P(x,y+d,z)], fill, cls);
+/* 水平に置いた丸（お皿・コンロなど） */
+const dot = (x, y, z, r, fill) => { const p = P(x, y, z); return '<ellipse cx="' + f1(p[0]) + '" cy="' + f1(p[1]) + '" rx="' + r + '" ry="' + (r / 2) + '" fill="' + fill + '"/>'; };
+const ball = (p, r, fill) => '<circle cx="' + f1(p[0]) + '" cy="' + f1(p[1]) + '" r="' + r + '" fill="' + fill + '"/>';
+/* 面に沿って書く文字（看板用） */
+const txtY = (s, x, y, z, size, fill) => { const p = P(x, y, z); return '<text class="sg" font-size="' + size + '" fill="' + fill + '" transform="matrix(.894 .447 0 1 ' + f1(p[0]) + ' ' + f1(p[1]) + ')">' + s + '</text>'; };
+const txtX = (s, x, y, z, size, fill) => { const p = P(x, y, z); return '<text class="sg" font-size="' + size + '" fill="' + fill + '" transform="matrix(.894 -.447 0 1 ' + f1(p[0]) + ' ' + f1(p[1]) + ')">' + s + '</text>'; };
+
+/* 人物。m は服の色（店員は navy、調理は white） */
+function person(x, y, m){
+  const h = P(x, y, 1.05), cy = h[1] - 9;
+  return box(x - .22, y - .18, .44, .36, .45, "ink") +
+         box(x - .3, y - .24, .6, .48, .52, m || "coral", .45) +
+         ball([h[0], cy], 7.5, "#f1cfad") +
+         '<path d="M' + f1(h[0] - 7.5) + ' ' + f1(cy - .5) + 'A7.5 7.5 0 0 1 ' + f1(h[0] + 7.5) + ' ' + f1(cy - .5) + 'Z" fill="#3b2e28"/>';
 }
+/* 胸の前で持ったスマホ（画面が光っている）。人物の (x, y) をそのまま渡す */
+const phone = (x, y) => box(x + .12, y + .2, .34, .3, .12, "ink", .78) + topPan(x + .16, y + .24, .26, .22, .901, "glow");
+/* テーブル＋椅子。dishes はお皿の数（端末を置く卓は減らす） */
+const FOOD = ["#e58a6c", "#e9b551", "#86b872"];
+function tableSet(x, y, s, m, dishes){
+  s = s || 1.5; dishes = dishes == null ? 2 : dishes;
+  const at = [[x + s * .8, y + s * .3], [x + s * .28, y + s * .78]].slice(0, dishes);
+  return box(x - .62, y + s/2 - .3, .55, .6, .44, m || "teal") +
+         box(x + s/2 - .16, y + s/2 - .16, .32, .32, .74, "wood") +
+         box(x, y, s, s, .09, "oak", .74) +
+         at.map((p, i) => dot(p[0], p[1], .83, 7, "#fff") + dot(p[0], p[1], .835, 3.2, FOOD[(i + Math.round(x)) % 3])).join("") +
+         box(x + s + .07, y + s/2 - .3, .55, .6, .44, m || "teal");
+}
+/* 鉢植え・街路樹 */
+function plant(x, y){
+  const c = P(x, y, .95);
+  return box(x - .25, y - .25, .5, .5, .45, "clay") + ball([c[0], c[1]], 11, "#79ad66") + ball([c[0] - 3, c[1] - 4], 6, "#93c47e");
+}
+function tree(x, y){
+  const c = P(x, y, 2.1);
+  return box(x - .1, y - .1, .2, .2, 1.5, "clay") + ball([c[0], c[1]], 20, "#79ad66") + ball([c[0] - 7, c[1] - 7], 11, "#93c47e");
+}
+/* 鍋から立つ湯気 */
+const steam = (x, y, z) => { const p = P(x, y, z); return '<path class="steam" d="M' + f1(p[0]) + ' ' + f1(p[1]) + 'c5 -6 -5 -10 0 -17c5 -6 -5 -10 0 -17"/>'; };
 const rep = (n, f) => { let s = ""; for(let i = 0; i < n; i++) s += f(i); return s; };
 
 /* 飲食号の誌面図：フードコート／客席（回転ずし・テーブル）／レジ／厨房／バックヤード／店外 */
@@ -914,18 +971,30 @@ function sceneFood(){
 
   /* ① フードコート・店頭 */
   z("ent", "フードコート・店頭", "FOOD COURT", 2, 1, 14, 10, [7, 1.6, 2.5],
-    plate(2,1,14,10) +
-    box(2,1,14,.35,2.6,"") + box(2,1,.35,10,2.6,"") +
-    /* 機械は奥の壁と左の壁に振り分ける（一列に並べると、スマホでピンが重なるため） */
-    box(4.6,1.5,1.1,.9,1.95,"hot") +                     /* 券売機（GLORY）… 奥の壁 */
-    box(7.6,1.5,1.1,.9,1.95,"hot") +                     /* 券売機（芝浦）… 奥の壁 */
-    box(2.4,3.2,.9,1.05,1.95,"hot") +                    /* 券売機（フジタカ）… 左の壁 */
-    box(2.38,5.7,.32,1.7,1.9,"hot") +                    /* デジタルサイネージ … 左の壁 */
-    box(2.4,9.3,.65,.6,1.7,"hot") +                      /* 両替機 … 左の壁の奥 */
-    box(10,1.4,5.4,1.1,1.15,"") + box(10,1.4,5.4,1.1,.12,"gl",1.15) + /* 受け渡しカウンター */
-    box(13.6,1.6,.9,.6,.22,"hot",1.27) +                 /* 呼び出しベルの充電台 */
-    rep(3, i => rep(2, j => tableSet(3.4 + i*3.9, 4.6 + j*3.1, 1.5))) +
-    person(9.2, 3.2) + person(12.4, 3.5),
+    plate(2,1,14,10,"tile") + seams(2,1,14,10,1,"xy") +
+    box(2,1,14,.35,2.6,"wall") + box(2,1,.35,10,2.6,"wall") +
+    /* 受け渡しカウンターの上のメニュー板 */
+    panY(10.3,15.1,1.36,1.62,2.42,"","#2f3547") + txtY("MENU",10.5,1.37,1.92,10,"#f3efe6") +
+    rep(3, i => panY(12.05 + i*1.0, 12.85 + i*1.0, 1.37, 1.74, 2.28, "", FOOD[i])) +
+    /* 機械は奥の壁と左の壁に振り分ける（一列に並べると、スマホでピンが重なるため）。
+       白い本体＋紺の画面＋当社色の帯で「機械」と分かるようにする */
+    box(4.6,1.5,1.1,.9,1.83,"white") + box(4.6,1.5,1.1,.9,.12,"hot",1.83) +          /* 券売機（GLORY）… 奥の壁 */
+    panY(4.75,5.55,2.41,1.12,1.68,"scr") + panY(4.8,5.5,2.41,.5,.72,"","#c9c5bc") +
+    box(7.6,1.5,1.1,.9,1.83,"white") + box(7.6,1.5,1.1,.9,.12,"hot",1.83) +          /* 券売機（芝浦）… 奥の壁 */
+    panY(7.75,8.55,2.41,1.12,1.68,"scr") + panY(7.8,8.5,2.41,.5,.72,"","#c9c5bc") +
+    box(2.4,3.2,.9,1.05,1.83,"white") + box(2.4,3.2,.9,1.05,.12,"hot",1.83) +        /* 券売機（フジタカ）… 左の壁 */
+    panX(3.31,3.35,4.1,1.12,1.68,"scr") + panX(3.31,3.4,4.05,.5,.72,"","#c9c5bc") +
+    box(2.38,5.7,.32,1.7,1.9,"ink") +                                                 /* デジタルサイネージ … 左の壁 */
+    panX(2.71,5.82,7.28,1.05,1.78,"","#e58a6c") + panX(2.71,5.82,7.28,.5,1.0,"","#e9b551") +
+    txtX("おすすめ",2.715,7.2,1.48,8,"#fff") +
+    box(2.4,9.3,.65,.6,1.58,"white") + box(2.4,9.3,.65,.6,.12,"hot",1.58) +          /* 両替機 … 左の壁の奥 */
+    panX(3.06,9.38,9.82,.95,1.38,"scr") +
+    box(10,1.4,5.4,1.1,1.15,"oak") + box(10,1.4,5.4,1.1,.12,"steel",1.15) +         /* 受け渡しカウンター */
+    box(13.6,1.6,.9,.6,.22,"white",1.27) +                                            /* 呼び出しベルの充電台 */
+    rep(3, i => dot(13.8 + i*.25, 1.9, 1.5, 4.5, "#e9b551")) +
+    rep(3, i => rep(2, j => tableSet(3.4 + i*3.9, 4.6 + j*3.1, 1.5, ["mustard","teal","coral"][(i + j) % 3]))) +
+    person(9.2, 3.2, "teal") + person(12.4, 3.5, "mustard") +
+    plant(15.3, 4.3) + plant(15.3, 10.3),
     /* n を配列にすると、先頭から順にシートにある名前を探す（改名の前後どちらでもピンが立つ） */
     [ {n:["GLORY 券売機", "券売機"], a:[5.15,1.95,1.35]},  /* 奥の壁で上端に近いので、付け根を胴体の高さに下げる */
       {n:"芝浦自販機 券売機", a:[8.15,1.95,2.1]},
@@ -936,21 +1005,25 @@ function sceneFood(){
 
   /* ② 客席（回転ずしレーン＋テーブル） */
   z("hall", "客席", "DINING", 2, 12, 14, 12, [3.2, 17, 3.2],
-    plate(2,12,14,12) +
-    box(2,12,.35,12,2.6,"") +
-    /* 回転ずしレーン（帯を四角くまわす） */
-    box(3.6,14,8.6,.75,.2,"hot",.78) + box(3.6,17.4,8.6,.75,.2,"hot",.78) +
-    box(3.6,14.75,.75,2.65,.2,"hot",.78) + box(11.45,14.75,.75,2.65,.2,"hot",.78) +
-    box(4.5,14.9,6.8,2.35,.72,"") +
-    rep(6, i => box(3.5 + i*1.45, 13.1, .6, .6, .46, "")) +
-    rep(6, i => box(3.5 + i*1.45, 18.6, .6, .6, .46, "")) +
+    plate(2,12,14,12,"wood") + seams(2,12,14,12,.8,"x") +
+    box(2,12,.35,12,2.6,"wall") +
+    rep(6, i => box(3.5 + i*1.45, 13.1, .6, .6, .46, "mustard")) +
+    /* 回転ずしのカウンターと、その上をまわるレーン（皿つき） */
+    box(3.6,14,8.6,4.15,.78,"oak") +
+    box(3.6,14,8.6,.75,.12,"steel",.78) + box(3.6,14.75,.75,2.65,.12,"steel",.78) +
+    box(4.5,14.9,6.8,2.35,.08,"white",.78) +
+    box(11.45,14.75,.75,2.65,.12,"steel",.78) + box(3.6,17.4,8.6,.75,.12,"steel",.78) +
+    rep(9, i => dot(3.98 + i*.98, 14.37, .9, 5, FOOD[i % 3]) + dot(3.98 + i*.98, 14.37, .905, 2.4, "#fff")) +
+    rep(9, i => dot(3.98 + i*.98, 17.77, .9, 5, FOOD[(i + 1) % 3]) + dot(3.98 + i*.98, 17.77, .905, 2.4, "#fff")) +
+    rep(6, i => box(3.5 + i*1.45, 18.6, .6, .6, .46, "mustard")) +
     /* テーブル席（卓上端末つき） */
-    rep(3, i => tableSet(3.6 + i*3.9, 20.3, 1.6)) +
-    rep(3, i => box(4.15 + i*3.9, 20.75, .62, .45, .1, "hot", .83)) +
-    person(13.6, 15.4) + person(13.9, 19.2) +
-    box(13.3, 19.6, .32, .5, .12, "hot", .95) +          /* 店員のハンディ端末 */
-    box(11.55, 21.45, .36, .28, .14, "hot", .83) +       /* テーブルで使う決済端末 */
-    box(2.5, 12.4, .5, .5, .34, "hot", 2.2),             /* 防犯カメラ */
+    rep(3, i => tableSet(3.6 + i*3.9, 20.3, 1.6, "teal", i === 2 ? 1 : 2)) +
+    rep(3, i => box(4.15 + i*3.9, 20.75, .62, .45, .1, "ink", .83) + topPan(4.2 + i*3.9, 20.8, .52, .35, .931, "glow")) +
+    person(13.6, 15.4, "coral") + person(13.9, 19.2, "navy") +
+    box(13.3, 19.6, .32, .5, .12, "ink", .95) + topPan(13.34, 19.65, .24, .4, 1.071, "glow") +   /* 店員のハンディ端末 */
+    box(11.55, 21.45, .36, .28, .14, "ink", .83) + topPan(11.59, 21.49, .28, .2, .971, "glow") + /* テーブルで使う決済端末 */
+    box(2.5, 12.4, .5, .5, .34, "white", 2.2) + ball(P(2.75, 12.9, 2.32), 3.2, "#2b3756") +     /* 防犯カメラ */
+    plant(15.2, 23.2),
     [ {n:"回転ずし向けレーン連動POSシステム", a:[7.9,16,1.1]},
       {n:"セルフオーダーシステム", a:[8.1,21,1.1]},
       {n:"スマートオーダーシステム", a:[4.4,21.1,1.1]},
@@ -960,16 +1033,23 @@ function sceneFood(){
 
   /* ③ レジカウンター */
   z("cash", "レジ", "CASHIER", 17, 1, 9, 7, [24.5, 1.6, 2.7],
-    plate(17,1,9,7) +
-    box(17,1,9,.35,2.6,"") + box(25.65,1,.35,7,2.6,"") +
-    box(18,3.4,6.6,1.5,1.05,"") +
-    box(18.4,3.7,1.5,.95,.5,"hot",1.05) +                /* PC-POS Foodレジ */
-    box(20.4,3.9,.95,.7,.42,"hot",1.05) +                /* スマレジ（タブレット） */
-    box(21.9,4,.6,.5,.3,"hot",1.05) +                    /* キャッシュレス決済端末 */
-    box(22.75,4.1,.4,.35,.14,"hot",1.05) +               /* 予約の電話（AIが代わりに受ける） */
-    box(23,3.6,1.3,1.05,.95,"hot") +                     /* つり銭機（GLORY） */
-    box(24.7,5.3,.75,.45,1.55,"hot") +                   /* オンライン精算機 */
-    person(19.6, 6.1) + person(22.3, 6.3),
+    plate(17,1,9,7,"oak") + seams(17,1,9,7,.8,"x") +
+    box(17,1,9,.35,2.6,"wall") + box(25.65,1,.35,7,2.6,"wall") +
+    panY(18.2,20.6,1.36,1.82,2.38,"","#2f3547") + txtY("お会計",18.5,1.37,2.02,12,"#f3efe6") +
+    /* 店の入口（外の壁に、ガラス戸・のれん・看板） */
+    panX(26.01,6.1,7.8,0,1.95,"","rgba(190,220,236,.85)") +
+    rep(3, i => panX(26.03, 6.15 + i*.55, 6.63 + i*.55, 1.4, 2.05, "", "#2f447a")) +
+    panX(26.02,1.6,5.6,1.8,2.45,"","#2f3547") + txtX("DINING",26.03,4.7,1.98,14,"#f3efe6") +
+    box(18,3.4,6.6,1.5,1.05,"wood") +
+    box(18.4,3.7,1.5,.95,.5,"white",1.05) + panY(18.55,19.75,4.66,1.13,1.48,"scr") +      /* PC-POS Foodレジ */
+    box(20.4,3.9,.95,.7,.42,"white",1.05) + panY(20.5,21.25,4.61,1.12,1.4,"scr") +        /* スマレジ（タブレット） */
+    box(21.9,4,.6,.5,.3,"ink",1.05) + topPan(21.98,4.06,.44,.3,1.351,"glow") +             /* キャッシュレス決済端末 */
+    box(22.75,4.1,.4,.35,.14,"white",1.05) +                                               /* 予約の電話（AIが代わりに受ける） */
+    box(23,3.6,1.3,1.05,.87,"white") + box(23,3.6,1.3,1.05,.08,"hot",.87) +               /* つり銭機（GLORY） */
+    panY(23.15,24.15,4.66,.45,.7,"","#c9c5bc") +
+    box(24.7,5.3,.75,.45,1.45,"white") + box(24.7,5.3,.75,.45,.1,"hot",1.45) +            /* オンライン精算機 */
+    panY(24.8,25.35,5.76,.85,1.32,"scr") +
+    person(19.6, 6.1, "coral") + person(22.3, 6.3, "teal"),
     [ {n:"飲食店様向けPC-POSFoodレジ", a:[19.1,4.2,1.6]},
       {n:"スマレジ", a:[20.9,4.3,1.5]},
       {n:["stera terminal（ステラターミナル）", "キャッシュレス決済端末"], a:[22.2,4.3,1.4]},  /* Foodレジ連動の決済端末 */
@@ -979,32 +1059,42 @@ function sceneFood(){
 
   /* ④ 厨房 */
   z("kit", "厨房", "KITCHEN", 17, 8.5, 9, 8, [25.4, 9.2, 3.4],
-    plate(17,8.5,9,8) +
-    box(25.65,8.5,.35,8,2.6,"") +
-    box(18,9.2,6.4,1.3,.95,"hot") +                      /* 調理台 */
-    box(18,9.2,6.4,1.3,.14,"gl",.95) +
-    box(18.2,11.6,1.8,1.5,1.75,"hot") +                  /* 冷蔵庫 */
-    box(20.4,11.8,1.5,1.3,.9,"") + box(22.3,11.8,1.5,1.3,.9,"") + /* 中古厨房機器 */
-    box(18.1,14,5.4,.9,.85,"") +
-    box(18,8.9,6.4,.5,.35,"",2.1) +                      /* 換気フード */
-    person(21.4, 13.6),
+    plate(17,8.5,9,8,"kitchen") + seams(17,8.5,9,8,.7,"xy") +
+    box(25.65,8.5,.35,8,2.6,"wall") +
+    box(18,9.2,6.4,1.3,.95,"steel") +                    /* 調理台（コンロと鍋） */
+    rep(3, i => dot(20.6 + i*1.1, 9.85, .96, 8, "#3f475c")) +
+    box(18.5,9.55,.7,.6,.4,"steel",.95) + box(19.6,9.6,.6,.5,.3,"steel",.95) +
+    steam(18.85, 9.85, 1.45) + steam(19.9, 9.85, 1.35) + steam(21.7, 9.85, 1.05) +
+    box(18.2,11.6,1.8,1.5,1.75,"steel") +                /* 冷蔵庫 */
+    panY(19.05,19.12,13.11,.7,1.45,"","#8a929a") +
+    box(20.4,11.8,1.5,1.3,.9,"steel") + box(22.3,11.8,1.5,1.3,.9,"steel") + /* 中古厨房機器 */
+    panY(20.6,21.6,13.11,.38,.62,"","#e9b551") + txtY("USED",20.68,13.12,.43,8,"#2f3547") +
+    panY(22.5,23.5,13.11,.38,.62,"","#e9b551") + txtY("USED",22.58,13.12,.43,8,"#2f3547") +
+    box(18.1,14,5.4,.9,.85,"steel") + topPan(19,14.15,1.2,.6,.851,"","#e6cca1") +
+    box(18,8.9,6.4,.5,.35,"steel",2.1) +                 /* 換気フード */
+    person(21.4, 13.6, "white"),
     [ {n:"厨房機器販売・設計/施工", a:[21.2,9.9,1.6]},
       {n:"TAMAYA中古商材", a:[22,12.4,1.4]} ]);
 
   /* ⑤ バックヤード・事務所 */
   z("back", "バックヤード・事務所", "BACK OFFICE", 17, 17, 9, 7, [18.4, 24.1, 2.2],
-    plate(17,17,9,7) +
-    box(25.65,17,.35,7,2.6,"") + box(17,23.65,9,.35,2.6,"") +
-    box(17,17,.35,7,2.6,"") +
-    box(17.1,19.6,.45,1.9,2.1,"gl") +                    /* 扉 */
-    box(17.6,20.2,.4,.55,.3,"hot",1.15) +                /* Akerun */
-    box(18.6,18,4.6,1.4,.75,"") +                        /* デスク */
-    box(19,18.3,1.1,.8,.5,"hot",.75) +                   /* 事務所PC（会計・セキュリティ） */
-    box(20.6,18.35,1.1,.8,.5,"hot",.75) +
-    box(23.8,17.6,1.1,1.1,1.5,"hot") +                   /* ネットワーク機器ラック */
-    box(24,21.4,.95,.95,1.7,"hot") +                     /* ウォーターサーバー */
-    box(18.4,21.6,2.2,1.4,1.3,"") +
-    person(21.6, 20.4),
+    plate(17,17,9,7,"carpet") +
+    box(25.65,17,.35,7,2.6,"wall") +
+    box(17,17,.35,7,2.6,"wall") +
+    box(17.1,19.6,.45,1.9,2.1,"wood") +                  /* 扉 */
+    box(17.6,20.2,.4,.55,.3,"white",1.15) + panX(18.01,20.3,20.65,1.2,1.38,"glow") +   /* Akerun */
+    box(18.6,18,4.6,1.4,.75,"wood") +                    /* デスク */
+    box(19,18.3,1.1,.8,.5,"ink",.75) + panY(19.08,20.02,19.11,.8,1.2,"","#6f8fc9") +   /* 事務所PC（会計・セキュリティ） */
+    box(20.6,18.35,1.1,.8,.5,"ink",.75) + panY(20.68,21.62,19.16,.8,1.2,"","#6f8fc9") +
+    box(19.3,19.75,.6,.6,.45,"navy") +
+    box(23.8,17.6,1.1,1.1,1.5,"ink") +                   /* ネットワーク機器ラック */
+    rep(4, i => panY(23.95,24.12,18.71,.3 + i*.3,.36 + i*.3,"","#86e08a")) +
+    box(24,21.4,.95,.95,1.25,"white") + box(24.15,21.55,.65,.65,.5,"water",1.25) +    /* ウォーターサーバー */
+    box(18.4,21.6,2.2,1.4,1.3,"oak") +                   /* 書類棚 */
+    rep(4, i => panY(18.55 + i*.5, 18.95 + i*.5, 23.01, .72, 1.18, "", ["#4b67b3","#e58a6c","#6aa7a1","#e9b551"][i])) +
+    person(21.6, 20.4, "navy") +
+    plant(25.1, 23.2) +
+    box(17,23.65,9,.35,.35,"wall"),                      /* 手前の壁は低く切って、中が見えるようにする */
     [ {n:"Akerun(アケルン)", a:[17.9,20.5,1.6]},
       {n:"応研大臣シリーズ", a:[19.5,18.7,1.4]},
       {n:"checkpoint", a:[21.1,18.7,1.4]},
@@ -1013,13 +1103,19 @@ function sceneFood(){
 
   /* ⑥ 店外（歩道）── モノが無い商材は、店の外の人として置く */
   z("out", "店外・来店前", "STREET", 29, 7, 9, 13, [36.2, 10, 2.6],
-    plate(29,7,9,13) +
-    line2(P(26,10,0), P(29,10,0)) + line2(P(26,16,0), P(29,16,0)) +
-    box(29.4,7.4,.7,.7,2.4,"") +
-    /* 店外の5人は、画面上で重ならないよう斜めに大きく振り分ける */
-    rep(5, i => person(30 + i * 1.55, 8.1 + i * 2.4)) +
-    rep(5, i => box(29.85 + i * 1.55, 7.95 + i * 2.4, .36, .36, .16, "hot", 1.1)) +
-    person(36.5, 9.5) + box(36.35, 9.35, .36, .36, .16, "hot", 1.1),   /* 店の外からLINEで順番待ち */
+    plate(38.6,3,3,22,"road") + rep(8, i => line2(P(40.1, 4 + i*2.7, 0), P(40.1, 5.4 + i*2.7, 0), "dash")) +
+    plate(29,7,9,13,"walk") + seams(29,7,9,13,1,"xy") +
+    plate(26,6.1,3,1.7,"stone") +                        /* 入口までの石畳 */
+    box(27.1,8.4,1.3,.25,.95,"ink") + panY(27.18,28.32,8.66,.15,.85,"","#2f3547") +   /* OPEN の立て看板 */
+    txtY("OPEN",27.22,8.67,.42,9,"#e9b551") +
+    box(29.65,7.65,.2,.2,2.4,"ink") + ball(P(29.75,7.75,2.5), 6, "#f6e3a8") +          /* 街灯 */
+    /* 店外の5人は、画面上で重ならないよう斜めに大きく振り分ける。
+       街路樹は奥にあるものから順に描く（手前の人に隠れるように） */
+    [[45.3, tree(37.9, 7.4)], [51.1, tree(37.9, 13.2)], [60.4, tree(37.9, 22.5)],
+     [46, person(36.5, 9.5, "coral") + phone(36.5, 9.5)]]   /* 店の外からLINEで順番待ち */
+      .concat(Array.from({length:5}, (_, i) => [38.1 + i * 3.95,
+        person(30 + i * 1.55, 8.1 + i * 2.4, ["teal","mustard","navy","green","coral"][i]) + phone(30 + i * 1.55, 8.1 + i * 2.4)]))
+      .sort((a, b) => a[0] - b[0]).map(v => v[1]).join(""),
     [ {n:"matoca（LINEで順番待ち）", a:[36.5,9.8,1.8]},
       {n:"MEO対策", a:[30,8.4,1.8]},
       {n:"ホームページ制作", a:[31.55,10.8,1.8]},
