@@ -372,7 +372,10 @@ img{display:block;max-width:100%}
 .toc-meta .c{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 /* 狭い画面：図のピンは番号だけにして重なりを防ぎ、名前は図の下の一覧で読ませる */
 @media (max-width:760px){
-  .stage:before{padding-top:100%}
+  .stage:before{padding-top:125%}
+  /* 図枠は縦長だが、図そのもの（viewBox 16:10）は上下中央に置かれる。ピンの層も同じ位置・比率に合わせる。
+     上下の余白は、番号ピンを縦に逃がす場所になる */
+  .layer{inset:auto 0;top:50%;transform:translateY(-50%);aspect-ratio:16/10}
   .zb .nm,.zb .n,.pin .nm{display:none}
   .zb .box,.pin .box{min-height:0;padding:0;background:none;border:0;box-shadow:none}
   .pin .box:before{display:none}
@@ -1007,7 +1010,8 @@ function sceneFood(){
       {n:"フジタカ 券売機", a:[2.85,3.7,2.1]},
       {n:"デジタルサイネージ", a:[2.55,6.55,2]},
       {n:"フジタカ 両替機", a:[2.72,9.6,1.85]},
-      {n:"ワンタッチコール（呼び出しベル）", a:[14.05,1.9,1.6]} ]);
+      {n:"ワンタッチコール（呼び出しベル）", a:[14.05,1.9,1.6]},
+      {n:"オフィス家具・オフィスづくり", a:[13.05,8.45,.5]} ]);   /* テーブル席のいす */
 
   /* ② 客席（回転ずしレーン＋テーブル） */
   z("hall", "客席", "DINING", 2, 12, 14, 12, [3.2, 17, 3.2],
@@ -1031,15 +1035,18 @@ function sceneFood(){
     box(2.5, 12.4, .5, .5, .34, "white", 2.2) + ball(P(2.75, 12.9, 2.32), 3.2, "#2b3756") +     /* 防犯カメラ */
     box(2.36, 18.6, .3, 2.2, .42, "white", 2.0) + panX(2.665, 18.75, 20.65, 2.04, 2.1, "", "#9aa3ad") + /* 壁掛けエアコン */
     ball(P(12.75, 21.55, .9), 4.5, "#fdfcf9") +                                         /* テーブルの呼び出しボタン */
+    box(13.9,12.7,1.1,.6,1.0,"oak") + box(14.15,12.85,.6,.15,.45,"ink",1.0) +           /* 店員側の呼び出し表示（ソネット君の受信機） */
+    panY(14.2,14.7,13.01,1.07,1.4,"glow") +
     plant(15.2, 23.2),
-    [ {n:"回転ずし向けレーン連動POSシステム", a:[7.9,16,1.1]},
-      {n:"セルフオーダーシステム", a:[8.1,21,1.1]},
+    [ {n:"セルフオーダーシステム", a:[8.1,21,1.1]},
       {n:"スマートオーダーシステム", a:[4.4,21.1,1.1]},
       {n:"NECモバイルPOS", a:[13.5,19.9,1.5]},
       {n:"JMS キャッシュレス決済", a:[11.73,21.59,1]},
-      {n:"ソネット君（オーダーコールシステム）", a:[12.75,21.55,1]},
+      {n:"ソネット君（オーダーコールシステム）", a:[14.45,12.95,1.45]},  /* 卓上が混むので、受信機の側に立てる */
+      {n:"オフィス家具・オフィスづくり", a:[3.25,21.1,.5]},        /* テーブル席のいす（左端） */
       {n:"業務用エアコン", a:[2.5,19.7,2.2]},
-      {n:"防犯カメラ", a:[2.8,12.7,2.6]} ]);
+      {n:"防犯カメラ", a:[2.8,12.7,2.6]},
+      {n:"回転ずし向けレーン連動POSシステム", a:[7.9,16,1.1]} ]);   /* 回転ずし専用なので一覧の最後 */
 
   /* ③ レジカウンター */
   z("cash", "レジ", "CASHIER", 17, 1, 9, 7, [24.5, 1.6, 2.7],
@@ -1382,7 +1389,8 @@ function sceneHotel(){
       {n:"GLORY 自動釣銭機", a:[8.1,2.9,1.1]},
       {n:"JMS キャッシュレス決済", a:[10,2.9,1.3]},
       {n:"オンライン精算機 VMT-700", a:[12.95,1.7,1.6]},
-      {n:"デジタルサイネージ", a:[2.55,6.85,2]} ]);
+      {n:"デジタルサイネージ", a:[2.55,6.85,2]},
+      {n:"オフィス家具・オフィスづくり", a:[8.6,7.3,.9]} ]);   /* ロビーのソファ */
 
   zoneAt(z, "L2", "rest", "レストラン", "RESTAURANT",
     floorOf("L2", "wood", .8, "x") + WALL.L2() +
@@ -1675,15 +1683,21 @@ function spreadPins(){
     }
   });
 
+  /* 図の下端には「全体にもどる」の帯が重なるので、ピンはその帯より上に収める */
+  const bar = stage.querySelector(".stage-bar");
+  const bottom = bar ? bar.getBoundingClientRect().top : sr.bottom;
   const placed = [];
-  data.sort((a, b) => a.T - b.T).forEach(o => {         /* 縦：ぶつかる分だけ線を伸ばす */
-    const hit = t => placed.some(p => o.L < p.right + 6 && p.left < o.R + 6 && t < p.bottom + 4 && p.top < t + o.H + 4);
+  /* 帯に隠れるピンを先に帯の上まで持ち上げ、残りは上から順に置く */
+  const low = o => o.T + o.H > bottom - 4;
+  data.sort((a, b) => low(b) - low(a) || (low(a) ? b.T - a.T : a.T - b.T)).forEach(o => {   /* 縦：ぶつかる分だけ線を伸ばす */
+    const hit = t => t + o.H > bottom - 4 ||
+      placed.some(p => o.L < p.right + 6 && p.left < o.R + 6 && t < p.bottom + 4 && p.top < t + o.H + 4);
     /* まず定位置から離れる向きへ、枠に当たったら逆向きへ逃がす */
     const tryDir = up => {
       let d = 0, t = o.T, g = 0;
       while(g++ < 40 && hit(t)){
         const nd = d + 13, nt = up ? o.T - nd : o.T + nd;
-        if(nt < sr.top + 4 || nt + o.H > sr.bottom - 4) break;
+        if(up ? nt < sr.top + 4 : nt + o.H > bottom - 4) break;
         d = nd; t = nt;
       }
       return { d, t, ok:!hit(t) };
@@ -1701,6 +1715,54 @@ function pinPos(a, cam){
   const p = P(a[0], a[1], a[2] || 0);
   return { l: (p[0] * cam.s + cam.tx) / ISO.W * 100, t: (p[1] * cam.s + cam.ty) / ISO.H * 100 };
 }
+
+/* 現場図では商品名ではなく「何をするものか」の呼び名で出す（記事のタイトルはシートの商品名のまま）。
+   同じ区画に同じ種類が並ぶものだけ、かっこでメーカーを添える。ここに無い名前はシートの名前のまま出る */
+const LABEL = {
+  "飲食店様向けPC-POSFoodレジ": "POSレジ",
+  "セルフオーダーシステム": "セルフオーダー（卓上端末）",
+  "スマートオーダーシステム": "スマホ注文（QRオーダー）",
+  "テイクアウトシステムEatsPark": "テイクアウト注文システム",
+  "NECモバイルPOS": "モバイルPOS",
+  "スマレジ": "タブレットPOSレジ",
+  "回転ずし向けレーン連動POSシステム": "回転ずしレーン連動POS",
+  "厨房機器販売・設計/施工": "厨房機器・設計施工",
+  "工事管理システムCOSTEM": "工事管理システム",
+  "積算システムGaiacloud": "積算システム",
+  "aipass": "セルフチェックイン",
+  "DDHBOX": "情報漏えい対策",
+  "checkpoint": "ファイアウォール",
+  "ほのぼの": "介護記録・請求ソフト",
+  "Akerun(アケルン)": "スマートロック",
+  "GLORY 自動釣銭機": "自動釣銭機",
+  "GLORY商材": "自動釣銭機",
+  "GLORY 券売機": "券売機（グローリー）",
+  "フジタカ 券売機": "券売機（フジタカ）",
+  "芝浦自販機 券売機": "券売機（芝浦自販機）",
+  "オンライン精算機 VMT-700": "自動精算機",
+  "フジタカ 両替機": "両替機",
+  "予約・顧客管理システムTORETA": "予約・顧客管理システム",
+  "トレタ予約番（AI電話予約）": "AI電話予約",
+  "matoca（LINEで順番待ち）": "順番待ちシステム",
+  "ワンタッチコール（呼び出しベル）": "呼び出しベル",
+  "ソネット君（オーダーコールシステム）": "オーダーコール",
+  "アプリメンバーズ": "ショップアプリ",
+  "JMS キャッシュレス決済": "キャッシュレス決済サービス",
+  "stera terminal（ステラターミナル）": "キャッシュレス決済端末",
+  "応研大臣シリーズ": "会計・給与ソフト",
+  "TAMAYA中古商材": "中古機器・中古品",
+  "クリクラ山陰": "ウォーターサーバー",
+  "寺岡精工 HappySelf（マルチセルフレジ）": "セルフレジ",
+  "寺岡精工 SM-6000FF（対面計量ラベルプリンター）": "対面計量器（寺岡）",
+  "イシダ UNI-10（対面計量プリンタ）": "対面計量器（イシダ）",
+  "寺岡精工 MP-3（モバイルラベルプリンター）": "モバイルラベルプリンター",
+  "サトー FX3-LX Plus（ラベルプリンター）": "ラベルプリンター",
+  "TOUCH TO GO（無人決済店舗・セルフレジ）": "無人決済店舗",
+  "たま手箱（ロッカー型無人販売機）": "ロッカー型無人販売機",
+  "富士フイルム 複合機": "複合機",
+  "オフィス家具・オフィスづくり": "店舗・オフィス家具"
+};
+const lab = n => LABEL[n] || n;
 
 function renderScene(){
   const ind = state.ind, zones = SCENES[ind.label]();
@@ -1727,8 +1789,8 @@ function renderScene(){
     ? shown.map((q, i) => {
         const o = pinPos(q.a, cam);
         return '<button class="pin' + (o.t < 32 ? ' flip' : '') + '" style="left:' + o.l.toFixed(2) + '%;top:' + o.t.toFixed(2) + '%"' +
-          ' onclick="openArticle(' + have[q.n] + ')" aria-label="' + esc(q.n) + '">' +
-          '<span class="inner"><span class="box"><span class="num">' + (i + 1) + '</span><span class="nm">' + esc(q.n) + '</span></span>' +
+          ' onclick="openArticle(' + have[q.n] + ')" aria-label="' + esc(lab(q.n)) + '">' +
+          '<span class="inner"><span class="box"><span class="num">' + (i + 1) + '</span><span class="nm">' + esc(lab(q.n)) + '</span></span>' +
           '<span class="stem"></span><span class="tip"></span></span></button>';
       }).join("")
     : live.map((zo, i) => {
@@ -1743,7 +1805,7 @@ function renderScene(){
   /* 図の下の一覧：全体図ならゾーン、寄っていればその場所の商材 */
   const list = cur
     ? cur.live.map((q, i) => '<a href="' + hashFor("article", ind, have[q.n]) + '" onclick="event.preventDefault();openArticle(' + have[q.n] + ')">' +
-        '<span class="i">' + (i + 1) + '</span><span class="t">' + esc(q.n) + '</span>' +
+        '<span class="i">' + (i + 1) + '</span><span class="t">' + esc(lab(q.n)) + '</span>' +
         '<span class="c">' + esc(state.list[have[q.n]].category || "") + '</span></a>').join("")
     : live.map((zo, i) => '<a href="' + hashFor("scene", ind) + '" onclick="event.preventDefault();goZone(\'' + zo.id + '\')">' +
         '<span class="i">' + (i + 1) + '</span><span class="t">' + esc(zo.name) + '</span>' +
