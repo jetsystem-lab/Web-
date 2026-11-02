@@ -67,7 +67,8 @@ const CAT_PHOTO = {
   "計量・ラベル":   "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
   "無人販売":     "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
   "オフィス・事務機": "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
-  "業務ソフト":    "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80"
+  "業務ソフト":    "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
+  "客室・リネン":   "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=1200&q=80"
 };
 /* どのカテゴリにも当てはまらないときの写真 */
 const DEFAULT_PHOTO = "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80";
@@ -1197,6 +1198,22 @@ const desk = (x, y, m) => box(x, y, 1.0, .6, .7, "oak") + box(x + .25, y + .8, .
 const bed = (x, y, m) => box(x, y, 1.3, 2.3, .45, "white") + box(x + .05, y + .85, 1.2, 1.4, .12, m || "teal", .45) +
   box(x + .2, y + .12, .9, .5, .14, "white", .45) + box(x + 1.35, y + .15, .25, .25, .5, "white") + topPan(x + 1.4, y + .2, .15, .15, .501, "glow");
 
+/* 業務用ランドリー（洗濯機2台・乾燥機2台・たたみ台）。x,y は左奥の角、幅はおよそ6.8 */
+const LAUNDRY = "山本製作所 業務用ランドリー機器（リネンの内製化）";
+const washer = (x, y, m) => box(x, y, 1.1, .9, 1.3, m) + panY(x + .15, x + .95, y + .91, 1.1, 1.24, "scr") +
+  panY(x + .25, x + .85, y + .91, .35, .95, "", "#bcd3ea");
+const laundryRow = (x, y) => washer(x, y, "steel") + washer(x + 1.25, y, "steel") + washer(x + 2.5, y, "white") + washer(x + 3.75, y, "white") +
+  box(x + 5.2, y, 1.6, .9, .8, "oak") + rep(3, i => box(x + 5.35 + i * .5, y + .2, .4, .5, .1 + (i % 2) * .08, "white", .8));
+const laundryPin = (x, y) => ({n:LAUNDRY, a:[x + 1.2, y + .45, 1.45]});
+/* 右中の区画をまるごと洗濯室にする（美容・その他サービス） */
+const laundryZone = (z, name) => zoneAt(z, "R2", "laundry", name, "LAUNDRY",
+  floorOf("R2", "tile", 1, "xy") + WALL.R2() +
+  laundryRow(17.6, 9.2) +
+  box(23,12.2,2.4,.6,1.6,"wood") + rep(3, r => rep(4, i => panY(23.1 + i*.58, 23.6 + i*.58, 12.81, .15 + r*.5, .5 + r*.5, "", "#f3efe6"))) +   /* タオルの棚 */
+  box(18.4,12.6,1.2,.8,.7,"steel") + box(18.5,12.7,1.0,.6,.15,"white",.7) +                                                                 /* リネン台車 */
+  person(21, 12.8, "teal"),
+  [laundryPin(17.6, 9.2)]);
+
 /* 事務所（右下の区画などに置く）。飲食のバックヤードと同じ配置 */
 function officeZone(z, id, name, en, X, Y, more, b){
   more = more || {};
@@ -1341,8 +1358,11 @@ function sceneBuild(){
     waterSv(13.5, 13.2) +
     person(7, 17.8, "teal") +
     box(10.5,18,3,1.6,.8,"oak") + topPan(10.7,18.2,2.6,1.2,.801,"","#bcd3ea") +            /* 図面を広げた打合せ机 */
+    box(14,18.5,.5,.6,.15,"ink") + box(14.15,18.7,.15,.2,.9,"ink") +                        /* 打合せ用の大型ディスプレイ（スタンド） */
+    panX(14.31,17.9,19.9,.95,2.0,"","#1d2433") + panX(14.32,18.0,19.8,1.02,1.93,"glow") +
     person(12, 20.5, "navy", "#f2c230"),
-    [ {n:"業務用エアコン", a:[2.5,16.9,2.2]},
+    [ {n:"シャープ 業務用ディスプレイ・サイネージ", a:[14.32,18.9,1.7]},
+      {n:"業務用エアコン", a:[2.5,16.9,2.2]},
       {n:"Akerun(アケルン)", a:[2.5,21.2,1.6]},
       {n:"TAMAYA中古商材", a:[7.2,15.1,1.0]},
       {n:"クリクラ山陰", a:[14,13.7,1.9]} ]);
@@ -1419,9 +1439,25 @@ function sceneHotel(){
       {n:"たま手箱（ロッカー型無人販売機）", a:[21.3,1.7,1.9]},
       {n:"フジタカ 両替機", a:[23.5,1.8,1.8]} ]);
 
-  zoneAt(z, "R2", "kit", "厨房", "KITCHEN", kitchenR2(), [KITCHEN_PIN]);
+  zoneAt(z, "R2", "kit", "厨房・リネン室", "KITCHEN", kitchenR2() + laundryRow(17.6, 14.6), [KITCHEN_PIN, laundryPin(17.6, 14.6)]);
   officeZone(z, "office", "事務所", "OFFICE", 17, 17);
   streetZone(z, ["MEO対策", "ホームページ制作", "テイクアウトシステムEatsPark"], { name:"館外・ご予約前" });
+
+  /* 客室（宿泊だけの7つ目の区画。事務所の右手前に置く） */
+  const hbed = (x, y) => box(x, y, 2.0, .15, 1.1, "wood") + box(x, y + .15, 2.0, 2.3, .5, "white") +
+    box(x + .05, y + 1.1, 1.9, 1.3, .08, "white", .5) + box(x, y + 1.9, 2.0, .45, .07, "navy", .58) +
+    box(x + .15, y + .3, .75, .5, .15, "white", .5) + box(x + 1.1, y + .3, .75, .5, .15, "white", .5);
+  z("room", "客室", "GUEST ROOM", 29, 21, 7.5, 6, [33.6, 21.3, 2.6],
+    plate(29,21,7.5,6,"carpet") +
+    box(29,21,7.5,.35,2.6,"wall") + box(29,21,.35,6,2.6,"wall") +
+    box(29.4,24.1,.6,2.0,.6,"oak") +                                                        /* テレビ台とテレビ */
+    panX(29.36,24.3,26.0,.95,1.95,"","#1d2433") + panX(29.37,24.4,25.9,1.02,1.88,"glow") +
+    hbed(30.6, 21.4) + hbed(33.1, 21.4) +
+    box(35.4,21.5,.9,.7,.8,"white") + box(35.5,21.6,.7,.5,.25,"ink",.8) + dot(35.7, 21.8, 1.05, 4, "#e9b551") +   /* 冷蔵庫・金庫とケトル */
+    box(32.7,24.8,.8,.8,.45,"teal") + person(34.5, 25.4, "coral"),
+    [ {n:"客室用テレビ（ホテル・旅館向け）", a:[29.4,25.15,1.45]},
+      {n:"客室備品（ホテル・旅館向け）", a:[35.85,21.85,1.1]},
+      {n:"オフィス家具・オフィスづくり", a:[33.1,25.2,.45]} ]);
   return Z;
 }
 
@@ -1458,6 +1494,7 @@ function sceneBeauty(){
       {n:"クリクラ山陰", a:[14.7,13.7,1.9]} ]);
 
   officeZone(z, "office", "スタッフルーム", "STAFF ROOM", 17, 1, null, SLOT.R1.b);
+  laundryZone(z, "タオル洗濯室");
   streetZone(z, ["MEO対策", "ホームページ制作", "matoca（LINEで順番待ち）", "アプリメンバーズ"], { sign:"OPEN" });
   return Z;
 }
@@ -1497,12 +1534,12 @@ function sceneCare(){
     [ {n:"TOUCH TO GO（無人決済店舗・セルフレジ）", a:[18.9,1.75,2.0]},
       {n:"たま手箱（ロッカー型無人販売機）", a:[21.7,1.7,1.9]} ]);
 
-  zoneAt(z, "R2", "kit", "厨房・食堂", "KITCHEN",
+  zoneAt(z, "R2", "kit", "厨房・洗濯室", "KITCHEN",
     floorOf("R2", "kitchen", .7, "xy") + WALL.R2() +
     box(18,9.2,6.4,1.3,.95,"steel") + rep(3, i => dot(20.6 + i*1.1, 9.85, .96, 8, "#3f475c")) +
     box(18.5,9.55,.7,.6,.4,"steel",.95) + steam(18.85, 9.85, 1.45) + box(18,8.9,6.4,.5,.35,"steel",2.1) +
-    tableSet(19, 13, 1.5, "teal") + tableSet(22.5, 13, 1.5, "teal"),
-    [KITCHEN_PIN]);
+    person(21, 12.4, "white") + laundryRow(17.6, 14.4),
+    [KITCHEN_PIN, laundryPin(17.6, 14.4)]);
 
   officeZone(z, "office", "スタッフステーション", "STAFF STATION", 17, 17, {
     svg: box(22.0,18.3,.6,.45,.06,"ink",.75) + topPan(22.05,18.35,.5,.35,.811,"glow"),   /* 介護記録のタブレット */
@@ -1561,8 +1598,10 @@ function sceneSchool(){
     floorOf("L1", "tile", 1, "xy") + WALL.L1() +
     ticketTrio() +
     box(10,1.4,5.4,1.1,1.15,"oak") + box(10,1.4,5.4,1.1,.12,"steel",1.15) +              /* 配膳カウンター */
+    signX(6.3) +                                                                            /* 献立のサイネージ */
     longTable(4.5, 5) + person(13.5, 4, "teal") + longTable(4.5, 8) + person(9, 9.9, "navy"),
-    TICKET_PINS.concat([ {n:"厨房機器販売・設計/施工", a:[12.7,1.9,1.6]} ]));
+    TICKET_PINS.concat([ {n:"厨房機器販売・設計/施工", a:[12.7,1.9,1.6]},
+                         {n:"デジタルサイネージ", a:[2.55,7.15,2]} ]));
 
   zoneAt(z, "L2", "class", "教室", "CLASSROOM",
     floorOf("L2", "wood", .8, "x") + WALL.L2() +
@@ -1571,7 +1610,7 @@ function sceneSchool(){
     box(4,17,1.4,.8,.75,"oak") + person(4.7, 16.4, "navy") +
     rep(3, r => rep(4, c => desk(7 + c*2, 14 + r*3, ["teal","coral","mustard"][(r + c) % 3]))) +
     person(9.5, 19.3, "coral") + person(13.5, 16.3, "teal"),
-    [ {n:"デジタルサイネージ", a:[2.55,14,1.6]},
+    [ {n:"シャープ 業務用ディスプレイ・サイネージ", a:[2.55,14,1.6]},   /* 電子黒板（BIG PAD） */
       {n:"業務用エアコン", a:[2.5,22.5,2.2]},
       {n:"オフィス家具・オフィスづくり", a:[9.5,17.3,.85]} ]);
 
@@ -1622,6 +1661,7 @@ function sceneService(){
       {n:"業務用エアコン", a:[2.5,21.6,2.2]},
       {n:"ワンタッチコール（呼び出しベル）", a:[10.45,18.15,1.0]} ]);
 
+  laundryZone(z, "リネン・タオル室");
   officeZone(z, "office", "事務所", "OFFICE", 17, 17);
   streetZone(z, ["MEO対策", "ホームページ制作", "matoca（LINEで順番待ち）", "アプリメンバーズ"], { sign:"OPEN" });
   return Z;
@@ -1666,8 +1706,10 @@ function spreadPins(){
   const sr = stage.getBoundingClientRect();
   const data = items.map(el => {
     const b = el.querySelector(".box").getBoundingClientRect();
+    /* 出てくるアニメーションの途中だと少し下にいるので、止まったときの位置に直して測る */
+    const lag = el.getAnimations().length ? new DOMMatrixReadOnly(getComputedStyle(el).transform).m42 + el.offsetHeight : 0;
     return { box:el.querySelector(".box"), stem:el.querySelector(".stem"), up:!el.classList.contains("flip"),
-             L:b.left, R:b.right, T:b.top, H:b.height };
+             L:b.left, R:b.right, T:b.top - lag, H:b.height };
   });
 
   data.forEach(o => {                                   /* 横：枠からはみ出すラベルを内側へ */
@@ -1690,7 +1732,7 @@ function spreadPins(){
   /* 帯に隠れるピンを先に帯の上まで持ち上げ、残りは上から順に置く */
   const low = o => o.T + o.H > bottom - 4;
   data.sort((a, b) => low(b) - low(a) || (low(a) ? b.T - a.T : a.T - b.T)).forEach(o => {   /* 縦：ぶつかる分だけ線を伸ばす */
-    const hit = t => t + o.H > bottom - 4 ||
+    const hit = t => t < sr.top + 4 || t + o.H > bottom - 4 ||
       placed.some(p => o.L < p.right + 6 && p.left < o.R + 6 && t < p.bottom + 4 && p.top < t + o.H + 4);
     /* まず定位置から離れる向きへ、枠に当たったら逆向きへ逃がす */
     const tryDir = up => {
@@ -1760,7 +1802,11 @@ const LABEL = {
   "TOUCH TO GO（無人決済店舗・セルフレジ）": "無人決済店舗",
   "たま手箱（ロッカー型無人販売機）": "ロッカー型無人販売機",
   "富士フイルム 複合機": "複合機",
-  "オフィス家具・オフィスづくり": "店舗・オフィス家具"
+  "オフィス家具・オフィスづくり": "店舗・オフィス家具",
+  "山本製作所 業務用ランドリー機器（リネンの内製化）": "業務用洗濯機・乾燥機",
+  "客室用テレビ（ホテル・旅館向け）": "客室用テレビ",
+  "客室備品（ホテル・旅館向け）": "客室備品",
+  "シャープ 業務用ディスプレイ・サイネージ": "業務用ディスプレイ"
 };
 const lab = n => LABEL[n] || n;
 
