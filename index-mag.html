@@ -438,6 +438,13 @@ function parsePdfs(raw){
   }).filter(p => p.url);
 }
 
+/* pdf 列に入れたリンクの種類（カードの見出し）。動画やWebページも同じ列に置ける */
+function docKind(u){
+  if(/youtube\.com|youtu\.be|instagram\.com|vimeo\.com|\.mp4(\?|$)/i.test(u)) return "VIDEO";
+  if(/\.pdf(\?|#|$)/i.test(u) || /drive\.google\.com|docs\.google\.com/.test(u)) return "PDF";
+  return "LINK";
+}
+
 /* 画像URL整形：Googleドライブ共有リンク → lh3、その他は weserv プロキシ */
 function imgURL(src, w){
   if(!src) return "";
@@ -843,10 +850,11 @@ function renderArticle(){
   const cards = []
     .concat(vid ? ['<a class="link-card" href="#artVideo" onclick="event.preventDefault();document.getElementById(\'artVideo\').scrollIntoView({behavior:\'smooth\',block:\'center\'})"><div class="label">VIDEO</div><strong>紹介動画を見る</strong><span class="arr">↓</span></a>'] : [])
     .concat(p.video && !vid ? ['<a class="link-card" href="' + esc(p.video) + '" target="_blank" rel="noopener"><div class="label">VIDEO</div><strong>紹介動画を見る</strong><span class="arr">↗</span></a>'] : [])
-    .concat(pdfs.map(d => '<a class="link-card" href="' + esc(d.url) + '" target="_blank" rel="noopener"><div class="label">PDF</div><strong>' + esc(d.label) + '</strong><span class="arr">↗</span></a>'))
+    .concat(pdfs.map(d => '<a class="link-card" href="' + esc(d.url) + '" target="_blank" rel="noopener"><div class="label">' + docKind(d.url) + '</div><strong>' + esc(d.label) + '</strong><span class="arr">↗</span></a>'))
     .concat(p.web ? ['<a class="link-card" href="' + esc(p.web) + '" target="_blank" rel="noopener"><div class="label">WEB</div><strong>公式サイト</strong><span class="arr">↗</span></a>'] : [])
     .concat(CONTACT.url ? ['<a class="link-card" href="' + esc(CONTACT.url) + '" target="_blank" rel="noopener"><div class="label">CONTACT</div><strong>詳しく相談する</strong><span class="arr">↗</span></a>'] : []);
-  const mats = [vid || p.video ? "動画" : "", pdfs.length ? "PDF " + pdfs.length + "点" : "", p.web ? "公式サイト" : ""].filter(Boolean).join(" ／ ") || "担当者がご用意します";
+  const nPdf = pdfs.filter(d => docKind(d.url) === "PDF").length, nVid = pdfs.filter(d => docKind(d.url) === "VIDEO").length + (vid || p.video ? 1 : 0);
+  const mats = [nVid ? "動画" + (nVid > 1 ? " " + nVid + "本" : "") : "", nPdf ? "PDF " + nPdf + "点" : "", p.web ? "公式サイト" : ""].filter(Boolean).join(" ／ ") || "担当者がご用意します";
   const prev = list[idx - 1], next = list[idx + 1];
   const pn = (x, k, cls, label) => x
     ? '<a class="' + cls + '" href="' + hashFor("article", ind, k) + '" onclick="event.preventDefault();openArticle(' + k + ')"><span class="l">' + label + '</span><span class="n">' + esc(x.name) + '</span></a>'
@@ -1027,6 +1035,7 @@ function sceneFood(){
     rep(9, i => dot(3.98 + i*.98, 14.37, .9, 5, FOOD[i % 3]) + dot(3.98 + i*.98, 14.37, .905, 2.4, "#fff")) +
     rep(9, i => dot(3.98 + i*.98, 17.77, .9, 5, FOOD[(i + 1) % 3]) + dot(3.98 + i*.98, 17.77, .905, 2.4, "#fff")) +
     rep(6, i => box(3.5 + i*1.45, 18.6, .6, .6, .46, "mustard")) +
+    plate(3.1,19.9,12.3,3.5,"carpet") + seams(3.1,19.9,12.3,3.5,.7,"x") +                /* テーブル席の床（水洗いできるカーペット床材） */
     /* テーブル席（卓上端末つき） */
     rep(3, i => tableSet(3.6 + i*3.9, 20.3, 1.6, "teal", i === 2 ? 1 : 2)) +
     rep(3, i => box(4.15 + i*3.9, 20.75, .62, .45, .1, "ink", .83) + topPan(4.2 + i*3.9, 20.8, .52, .35, .931, "glow")) +
@@ -1047,6 +1056,7 @@ function sceneFood(){
       {n:"オフィス家具・オフィスづくり", a:[3.25,21.1,.5]},        /* テーブル席のいす（左端） */
       {n:"業務用エアコン", a:[2.5,19.7,2.2]},
       {n:"防犯カメラ", a:[2.8,12.7,2.6]},
+      {n:"アスワン ロボフロアー（水洗いできるカーペット床材）", a:[14.7,21.4,.02]},     /* テーブル席の床 */
       {n:"回転ずし向けレーン連動POSシステム", a:[7.9,16,1.1]} ]);   /* 回転ずし専用なので一覧の最後 */
 
   /* ③ レジカウンター */
@@ -1401,6 +1411,8 @@ function sceneHotel(){
     box(5,2.4,6.4,1.0,1.05,"wood") + termTop(5.6, 2.75, 1.05) + changer(7.6, 2.5, .97) + termTop(9.8, 2.75, 1.05) +
     box(12.6,1.5,.75,.45,1.45,"white") + box(12.6,1.5,.75,.45,.1,"hot",1.45) + panY(12.7,13.25,1.96,.85,1.32,"scr") +   /* 精算機 */
     signX(6) +
+    plate(5.6,5.9,6.2,3.7,"carpet") + seams(5.6,5.9,6.2,3.7,.7,"x") +                    /* ラウンジの床（水洗いできるカーペット床材） */
+    plate(12.6,9.2,2.6,1.5,"ink") +                                                       /* 入口の吸水マット */
     box(7,6.6,3.2,.3,.9,"teal") + box(7,6.9,3.2,.9,.45,"teal") + box(7.8,8.3,1.6,.8,.4,"wood") +   /* ソファ */
     person(11, 5, "coral") + box(11.4,5.2,.4,.3,.6,"mustard") +
     plant(15.3, 10.3) + plant(3.4, 10.3),
@@ -1410,7 +1422,9 @@ function sceneHotel(){
       {n:"JMS キャッシュレス決済", a:[10,2.9,1.3]},
       {n:"オンライン精算機 VMT-700", a:[12.95,1.7,1.6]},
       {n:"デジタルサイネージ", a:[2.55,6.85,2]},
-      {n:"オフィス家具・オフィスづくり", a:[8.6,7.3,.9]} ]);   /* ロビーのソファ */
+      {n:"オフィス家具・オフィスづくり", a:[8.6,7.3,.9]},      /* ロビーのソファ */
+      {n:"アスワン ロボフロアー（水洗いできるカーペット床材）", a:[6.3,8.9,.02]},
+      {n:"アスワン ロボウォーター（高吸水マット）", a:[13.9,9.95,.03]} ]);
 
   zoneAt(z, "L2", "rest", "レストラン", "RESTAURANT",
     floorOf("L2", "wood", .8, "x") + WALL.L2() +
@@ -1450,6 +1464,7 @@ function sceneHotel(){
   z("room", "客室", "GUEST ROOM", 29, 21, 7.5, 6, [33.6, 21.3, 2.6],
     plate(29,21,7.5,6,"carpet") +
     box(29,21,7.5,.35,2.6,"wall") + box(29,21,.35,6,2.6,"wall") +
+    panX(29.36,21.75,23.75,.25,2.45,"","#bcd9c8") + rep(4, i => panX(29.37,22.1 + i*.42,22.14 + i*.42,.25,2.45,"","#9fc4ae")) +   /* 窓のカーテン */
     box(29.4,24.1,.6,2.0,.6,"oak") +                                                        /* テレビ台とテレビ */
     panX(29.36,24.3,26.0,.95,1.95,"","#1d2433") + panX(29.37,24.4,25.9,1.02,1.88,"glow") +
     hbed(30.6, 21.4) + hbed(33.1, 21.4) +
@@ -1457,6 +1472,7 @@ function sceneHotel(){
     box(32.7,24.8,.8,.8,.45,"teal") + person(34.5, 25.4, "coral"),
     [ {n:"客室用テレビ（ホテル・旅館向け）", a:[29.4,25.15,1.45]},
       {n:"客室備品（ホテル・旅館向け）", a:[35.85,21.85,1.1]},
+      {n:"アスワン 業務用カーテン タフネス（施設向け）", a:[29.4,22.75,2.0]},
       {n:"オフィス家具・オフィスづくり", a:[33.1,25.2,.45]} ]);
   return Z;
 }
@@ -1509,23 +1525,29 @@ function sceneCare(){
     box(5,2.4,5,1,1.05,"white") + box(5.4,2.6,1.0,.5,.18,"white",1.05) + rep(3, i => dot(5.6 + i*.3, 2.85, 1.24, 4.5, "#e9b551")) +   /* 呼び出し受信機の充電台 */
     kioskY(10.8, 1.5, .9, .7, 1.25) +                                                      /* 自動精算機 */
     signX(4.5) +
+    plate(5.0,5.3,4.9,3.9,"carpet") + seams(5.0,5.3,4.9,3.9,.7,"x") +                    /* 待合の床（水洗いできるカーペット床材） */
+    plate(10.6,9.3,2.6,1.4,"ink") +                                                       /* 玄関の吸水マット */
     rep(2, r => rep(4, i => box(5.5 + i*1.0, 5.8 + r*1.8, .8, .7, .45, "teal"))) +
     person(4, 8, "mustard") + waterSv(14.3, 8.4) + person(9.5, 9.6, "coral"),
     [ {n:"ワンタッチコール（呼び出しベル）", a:[5.9,2.85,1.4]},
       {n:"寺岡精工 HappySelf（マルチセルフレジ）", a:[11.25,1.85,1.55]},
       {n:"防犯カメラ", a:[15.15,1.7,2.6]},
       {n:"デジタルサイネージ", a:[2.55,5.35,2]},
-      {n:"クリクラ山陰", a:[14.8,8.9,1.9]} ]);
+      {n:"クリクラ山陰", a:[14.8,8.9,1.9]},
+      {n:"アスワン ロボフロアー（水洗いできるカーペット床材）", a:[7.4,8.75,.02]},
+      {n:"アスワン ロボウォーター（高吸水マット）", a:[11.9,10.0,.03]} ]);
 
   zoneAt(z, "L2", "room", "居室", "ROOM",
     floorOf("L2", "wood", .8, "x") + WALL.L2() +
     acX(15.8) +
+    panX(2.36,19.2,21.6,.25,2.45,"","#f1e3b4") + rep(5, i => panX(2.37,19.5 + i*.42,19.54 + i*.42,.25,2.45,"","#dcc98f")) +   /* 窓のカーテン */
     bed(4, 13.5, "teal") + bed(10, 13.5, "mustard") +
     person(7.5, 16.5, "navy") +
     bed(4, 18.5, "coral") + box(5.7,19,.7,.7,.7,"oak") + bed(10, 18.5, "teal") +
     person(8, 21.5, "coral"),
     [ {n:"ソネット君（オーダーコールシステム）", a:[5.47,13.77,.75]},
       {n:"業務用エアコン", a:[2.5,16.9,2.2]},
+      {n:"アスワン 業務用カーテン タフネス（施設向け）", a:[2.5,20.4,2.0]},
       {n:"オフィス家具・オフィスづくり", a:[6.05,19.35,.9]} ]);
 
   zoneAt(z, "R1", "shop", "院内売店", "SHOP",
@@ -1806,7 +1828,10 @@ const LABEL = {
   "山本製作所 業務用ランドリー機器（リネンの内製化）": "業務用洗濯機・乾燥機",
   "客室用テレビ（ホテル・旅館向け）": "客室用テレビ",
   "客室備品（ホテル・旅館向け）": "客室備品",
-  "シャープ 業務用ディスプレイ・サイネージ": "業務用ディスプレイ"
+  "シャープ 業務用ディスプレイ・サイネージ": "業務用ディスプレイ",
+  "アスワン ロボフロアー（水洗いできるカーペット床材）": "水洗いできる床材",
+  "アスワン ロボウォーター（高吸水マット）": "吸水マット",
+  "アスワン 業務用カーテン タフネス（施設向け）": "施設向けカーテン"
 };
 const lab = n => LABEL[n] || n;
 
