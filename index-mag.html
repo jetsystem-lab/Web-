@@ -32,6 +32,8 @@ const CONTACT = {
 /* メーカーの公式サイトへのリンク（web 列と、資料欄の PDF・動画以外のリンク）を記事に出すか。
    お客様がメーカーへ直接問い合わせてしまわないよう、いまは出さない。シートの web 列は社内の控えとして残してよい */
 const SHOW_MAKER_LINKS = false;
+/* 自社サイト（FOODレジ・MEO対策など）へのリンクは、上の設定にかかわらず出す */
+const isOwnSite = u => /^https?:\/\/(www\.)?jetsystem\.co\.jp\//i.test(u || "");
 
 const TOP_VIDEO = "https://www.jetsystem.co.jp/wp-content/uploads/2024/07/top_video2.mp4";
 
@@ -850,8 +852,8 @@ function renderSpread(){
 function renderArticle(){
   const ind = state.ind, list = state.list, idx = state.article, p = list[idx];
   if(!p) return renderContents();
-  const vid = ytId(p.video), pdfs = parsePdfs(p.pdf).filter(d => SHOW_MAKER_LINKS || docKind(d.url) !== "LINK");
-  const web = SHOW_MAKER_LINKS ? p.web : "";
+  const vid = ytId(p.video), pdfs = parsePdfs(p.pdf).filter(d => SHOW_MAKER_LINKS || isOwnSite(d.url) || docKind(d.url) !== "LINK");
+  const web = SHOW_MAKER_LINKS || isOwnSite(p.web) ? p.web : "";
   const cards = []
     .concat(vid ? ['<a class="link-card" href="#artVideo" onclick="event.preventDefault();document.getElementById(\'artVideo\').scrollIntoView({behavior:\'smooth\',block:\'center\'})"><div class="label">VIDEO</div><strong>紹介動画を見る</strong><span class="arr">↓</span></a>'] : [])
     .concat(p.video && !vid ? ['<a class="link-card" href="' + esc(p.video) + '" target="_blank" rel="noopener"><div class="label">VIDEO</div><strong>紹介動画を見る</strong><span class="arr">↗</span></a>'] : [])
